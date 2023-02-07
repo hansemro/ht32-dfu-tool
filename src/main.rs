@@ -102,7 +102,7 @@ fn main() {
             let info = dev.get_info().expect("Unable to get device information");
             assert!(info.flash_size() >= addr + length);
             assert!(length > 0);
-            println!("Reading 0x{:x}:0x{:x} to {:?}...", addr, addr + length - 1, file);
+            println!("Reading 0x{:04x}:0x{:04x} to {:?}...", addr, addr + length - 1, file);
             dev.read(&file, addr, length).expect("Read failed");
         }
         Action::Write { addr, file } => {
@@ -116,11 +116,13 @@ fn main() {
                 println!("Resetting device...");
                 dev.reset_reconnect().expect("Device failed to reconnect");
             }
-            println!("Writing {:?} to 0x{:x}...", file, addr);
+            println!("Writing {:?} to 0x{:04x}...", file, addr);
             dev.write(&file, addr).expect("Write failed");
+            println!("Writing finished");
             if args.verify {
                 println!("Verifying flash...");
                 dev.verify(&file, addr).expect("Flash verification failed");
+                println!("Validated");
             }
         }
         Action::Info => {

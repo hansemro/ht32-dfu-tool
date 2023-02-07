@@ -360,15 +360,11 @@ impl HT32ISPDevice {
                 std::thread::sleep(Duration::new(1, 0));
                 self.get_report(&mut status[..])?;
                 let mut passed = 0;
-                let mut failed = 0;
                 for n in status.iter() {
                     if *n == 0x4f {
                         passed += 1;
-                    } else if *n == 0x46 {
-                        failed += 1;
                     }
                 }
-                println!("{} tasks failed", failed);
                 count -= passed;
             }
         }
