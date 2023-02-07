@@ -1,0 +1,12 @@
+[package]
+name = "ht32-dfu-tool"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-2.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "4.1.4", features = ["derive"] }
+crc16 = "0.4.0"
+rusb = "0.9.1"
