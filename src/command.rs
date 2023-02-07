@@ -99,7 +99,7 @@ impl HT32ISPCommand {
     pub fn mass_erase_cmd() -> Self {
         Self {
             command: 0x0,
-            subcommand: 0x8,
+            subcommand: 0xA,
             arg1: 0x0,
             arg2: 0x0,
             data: [0u8; 52],
