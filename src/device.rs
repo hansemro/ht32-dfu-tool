@@ -7,6 +7,7 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use crc16::{State, XMODEM};
+use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 
 #[derive(Debug)]
 pub enum Error {
@@ -333,6 +334,14 @@ impl HT32ISPDevice {
         let mut status = [0u8; 64];
         self.get_report(&mut status[..]).ok();
 
+        let pb = ProgressBar::new(end as u64);
+        pb.set_style(ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})")
+            .unwrap()
+            .with_key("eta", |state: &ProgressState, w: &mut dyn std::fmt::Write| {
+                write!(w, "{:.1}s", state.eta().as_secs_f64()).unwrap()
+            })
+            .progress_chars("#>-"));
+
         let mut count = 0;
         for offset in ((addr as usize)..end).step_by(52) {
             let left = end as u32 - offset as u32;
@@ -362,14 +371,17 @@ impl HT32ISPDevice {
                 }
                 count -= passed;
             }
+            pb.set_position(offset as u64 + length as u64);
         }
         if count > 0 {
+            pb.abandon_with_message("Write failed");
             if write {
                 Err(Error::WriteFailed)
             } else {
                 Err(Error::CheckFailed)
             }
         } else {
+            pb.finish_with_message("Write finished");
             Ok(())
         }
     }
@@ -385,6 +397,15 @@ impl HT32ISPDevice {
     pub fn read(&mut self, filepath: &PathBuf, addr: u32, n: u32) -> Result<(), Error> {
         let mut file = File::create(filepath).map_err(Error::FileError)?;
         let end = addr + n;
+
+        let pb = ProgressBar::new(end as u64);
+        pb.set_style(ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})")
+            .unwrap()
+            .with_key("eta", |state: &ProgressState, w: &mut dyn std::fmt::Write| {
+                write!(w, "{:.1}s", state.eta().as_secs_f64()).unwrap()
+            })
+            .progress_chars("#>-"));
+
         // read command seems to only accept lengths that are multiples of 64 bytes
         for offset in (addr..end).step_by(64) {
             let left = end - offset;
@@ -397,7 +418,9 @@ impl HT32ISPDevice {
             let mut buf = [0u8; 64];
             self.send_recv_cmd(&cmd[..], &mut buf[..])?;
             file.write_all(&buf[..(length as usize)]).map_err(Error::FileError)?;
+            pb.set_position((offset + length) as u64);
         }
+        pb.finish();
         Ok(())
     }
 
