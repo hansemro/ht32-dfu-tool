@@ -14,8 +14,17 @@ fn parse_vidpid(src: &str) -> Result<(u16, u16), std::num::ParseIntError> {
         .map(|x| x.trim_start_matches("0x"));
     let vid = u16::from_str_radix(split.next().unwrap(), 16)?;
     let pid = u16::from_str_radix(split.next().unwrap(), 16)?;
-
     Ok((vid, pid))
+}
+
+fn parse_hex_or_dec(src: &str) -> Result<u32, std::num::ParseIntError> {
+    let lower = src.to_lowercase();
+    if lower.starts_with("0x") {
+        let (_,num) = lower.split_at(2);
+        Ok(u32::from_str_radix(num, 16)?)
+    } else {
+        Ok(lower.parse::<u32>()?)
+    }
 }
 
 #[derive(Parser, Debug)]
@@ -38,7 +47,7 @@ struct Args {
     #[arg(short, long, action = clap::ArgAction::SetTrue)]
     verify: bool,
 
-    #[arg(short = 'c', help = "Number of bytes to read [default: entire flash]")]
+    #[arg(short = 'c', value_parser(parse_hex_or_dec), help = "Number of bytes to read [default: entire flash]")]
     length: Option<u32>,
 
     #[command(subcommand)]
