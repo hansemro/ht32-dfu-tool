@@ -7,15 +7,39 @@ Holtek HT32 processors feature a ROM ISP bootloader used for reprogramming
 flash, setting flash security, and verifying integrity of flash via USB or
 UART interface. By shorting the designated BOOT pin(s) and resetting, the
 device will start in ISP bootloader and can be detected over USB. Refer to
-the VMCR register in the Flash Memory Controller section in the User Manuals,
+the VMCR register in the Flash Memory Controller section in the User Manuals
 to see which pins need to be shorted high/low to start in `Boot Loader` mode.
 
-## Build
+## Setup
 
-Build utility with cargo:
+- libusb-1 (with headers)
+- cargo/rustup
+
+### Windows Development Setup (MSYS2/MINGW64)
+
+1. Install MSYS2 from https://www.msys2.org/
+
+2. Update MSYS2 environment (from `MSYS2 MINGW64` console):
+```bash
+pacman -Syu
 ```
+3. Install build tools and dependencies:
+```bash
+pacman -S base-devel \
+        mingw-w64-x86_64-toolchain \
+        mingw-w64-x86_64-rust \
+        mingw-w64-x86_64-libusb
+```
+
+## Build from Source
+
+Build the utility with cargo:
+```
+cd ht32-dfu-tool
 cargo build -r
 ```
+
+Target binary is located at `./target/release/ht32-dfu-tool[.exe]`.
 
 ## Usage Help
 
