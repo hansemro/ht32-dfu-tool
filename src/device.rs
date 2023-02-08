@@ -83,10 +83,10 @@ impl HT32ISPDevice {
         let mut ep_out: Option<u8> = None;
         let mut interface: Option<u8> = None;
         let device_desc = device.device_descriptor() 
-            .map_err(|e| Error::UsbError(e))?;
+            .map_err(Error::UsbError)?;
         'outer: for n in 0..device_desc.num_configurations() {
             let config_desc = device.config_descriptor(n)
-                .map_err(|e| Error::UsbError(e))?;
+                .map_err(Error::UsbError)?;
             for iface in config_desc.interfaces() {
                 for iface_desc in iface.descriptors() {
                     for ep_desc in iface_desc.endpoint_descriptors() {
@@ -117,47 +117,38 @@ impl HT32ISPDevice {
             }
         }
         if interface.is_none() || ep_in.is_none() || ep_out.is_none() {
-            Err(Error::EndpointNotFound)
-        } else {
-            Ok(Self {
-                handle: Some(device.open().map_err(|e| Error::UsbError(e))?),
-                vid: vid,
-                pid: pid,
-                bus_number: device.bus_number(),
-                port_number: device.port_number(),
-                interface: interface.unwrap(),
-                ep_in: ep_in.unwrap(),
-                ep_out: ep_out.unwrap(),
-                info: None,
-                security_info: None,
-            })
+            return Err(Error::EndpointNotFound);
         }
+        Ok(Self {
+            handle: Some(device.open().map_err(Error::UsbError)?),
+            vid,
+            pid,
+            bus_number: device.bus_number(),
+            port_number: device.port_number(),
+            interface: interface.unwrap(),
+            ep_in: ep_in.unwrap(),
+            ep_out: ep_out.unwrap(),
+            info: None,
+            security_info: None,
+        })
     }
 
     /// Attempt to claim device
     pub fn claim(&mut self) -> Result<(), Error> {
-        match self.handle.as_mut().ok_or(Error::DeviceNotFound)?
-            .set_auto_detach_kernel_driver(true)
-        {
-            Ok(_) => (),
-            Err(_) => (),
-        }
+        self.handle.as_mut().ok_or(Error::DeviceNotFound)?
+            .set_auto_detach_kernel_driver(true).ok();
         self.handle.as_mut().ok_or(Error::DeviceNotFound)?
             .claim_interface(self.interface)
-            .map_err(|e| Error::UsbError(e))?;
+            .map_err(Error::UsbError)?;
         Ok(())
     }
 
     /// Attempt to release device
     pub fn release(&mut self) -> Result<(), Error> {
-        match self.handle.as_mut().ok_or(Error::DeviceNotFound)?
-            .set_auto_detach_kernel_driver(false)
-        {
-            Ok(_) => (),
-            Err(_) => (),
-        }
+        self.handle.as_mut().ok_or(Error::DeviceNotFound)?
+            .set_auto_detach_kernel_driver(false).ok();
         self.handle.as_mut().ok_or(Error::DeviceNotFound)?.release_interface(self.interface)
-            .map_err(|e| Error::UsbError(e))?;
+            .map_err(Error::UsbError)?;
         Ok(())
     }
 
@@ -172,22 +163,22 @@ impl HT32ISPDevice {
         let crc = State::<XMODEM>::calculate(&_cmd);
         _cmd[2] = crc as u8;
         _cmd[3] = (crc >> 8) as u8;
-        Ok(self.handle.as_ref().ok_or(Error::DeviceNotFound)?
+        self.handle.as_ref().ok_or(Error::DeviceNotFound)?
             .write_interrupt(self.ep_out, &_cmd, Duration::new(1, 0))
-            .map_err(|e| Error::UsbError(e))?)
+            .map_err(Error::UsbError)
     }
 
     /// Attempt to read data from device's input endpoint
     fn recv(&self, buf: &mut [u8]) -> Result<usize, Error> {
-        Ok(self.handle.as_ref().ok_or(Error::DeviceNotFound)?
+        self.handle.as_ref().ok_or(Error::DeviceNotFound)?
             .read_interrupt(self.ep_in, buf, Duration::new(1, 0))
-            .map_err(|e| Error::UsbError(e))?)
+            .map_err(Error::UsbError)
     }
 
     /// Send `cmd` to device and get its `response`
     fn send_recv_cmd(&self, cmd: &[u8], response: &mut [u8])
             -> Result<(usize, usize), Error> {
-        Ok((self.send_cmd(&cmd)?, self.recv(response)?))
+        Ok((self.send_cmd(cmd)?, self.recv(response)?))
     }
 
     /// Attempt GET_REPORT request
@@ -204,7 +195,7 @@ impl HT32ISPDevice {
             /* wIndex */    self.interface as u16,
                             response,
                             Duration::new(1, 0))
-            .map_err(|e| Error::UsbError(e))?;
+            .map_err(Error::UsbError)?;
         Ok(())
     }
 
@@ -238,7 +229,7 @@ impl HT32ISPDevice {
                 flash_size
             });
         }
-        Ok(&self.info.as_ref().unwrap())
+        Ok(self.info.as_ref().unwrap())
     }
 
     /// Get device flash security and option byte protection status.
@@ -255,7 +246,7 @@ impl HT32ISPDevice {
                 option_byte_protection
             });
         }
-        Ok(&self.security_info.as_ref().unwrap())
+        Ok(self.security_info.as_ref().unwrap())
     }
 
     /// Print device information
@@ -289,7 +280,7 @@ impl HT32ISPDevice {
         // bus and port numbers. This works only if BOOT pin(s) are configured
         // to boot into ISP.
         let mut dev_list = rusb::DeviceList::new()
-            .map_err(|e| Error::UsbError(e))?
+            .map_err(Error::UsbError)?
             .iter()
             .filter(|dev| {
                 if (dev.bus_number() == self.bus_number)
@@ -306,7 +297,7 @@ impl HT32ISPDevice {
                     false
                 }
             }).collect::<Vec<_>>();
-        if dev_list.len() == 0 {
+        if dev_list.is_empty() {
             Err(Error::ReconnectFailed)
         } else {
             self.handle = Some(dev_list.remove(0).open()
@@ -329,8 +320,8 @@ impl HT32ISPDevice {
     }
 
     fn write_verify(&mut self, filepath: &PathBuf, addr: u32, write: bool) -> Result<(), Error> {
-        let mut file = File::open(filepath).map_err(|e| Error::FileError(e))?;
-        let metadata = file.metadata().map_err(|e| Error::FileError(e))?;
+        let mut file = File::open(filepath).map_err(Error::FileError)?;
+        let metadata = file.metadata().map_err(Error::FileError)?;
         if !metadata.is_file() {
             return Err(Error::InvalidFilePath);
         }
@@ -351,7 +342,7 @@ impl HT32ISPDevice {
                 52
             };
             let mut data = [0u8; 52]; 
-            file.read(&mut data[..]).map_err(|e| Error::FileError(e))?;
+            file.read(&mut data[..]).map_err(Error::FileError)?;
             let cmd: [u8; 64] = if write {
                 HT32ISPCommand::write_flash_cmd(offset as u32, length, data).into()
             } else {
@@ -392,13 +383,13 @@ impl HT32ISPDevice {
     }
 
     pub fn read(&mut self, filepath: &PathBuf, addr: u32, n: u32) -> Result<(), Error> {
-        let mut file = File::create(filepath).map_err(|e| Error::FileError(e))?;
+        let mut file = File::create(filepath).map_err(Error::FileError)?;
         let end = addr + n;
         for offset in (addr..end).step_by(64) {
             let cmd: [u8; 64] = HT32ISPCommand::read_flash_cmd(offset, 64).into();
             let mut buf = [0u8; 64];
             self.send_recv_cmd(&cmd[..], &mut buf[..])?;
-            file.write_all(&buf).map_err(|e| Error::FileError(e))?;
+            file.write_all(&buf).map_err(Error::FileError)?;
         }
         Ok(())
     }
@@ -421,7 +412,7 @@ impl HT32DeviceList {
     pub fn new(vid: u16, pid: u16) -> Result<Self, Error> {
         Ok(Self {
             dev_list: rusb::DeviceList::new()
-                .map_err(|e| Error::UsbError(e))?
+                .map_err(Error::UsbError)?
                 .iter()
                 .filter(|dev| {
                     match dev.device_descriptor() {
@@ -429,8 +420,8 @@ impl HT32DeviceList {
                         Err(_) => false,
                     }
                 }).collect::<Vec<_>>(),
-            vid: vid,
-            pid: pid,
+            vid,
+            pid,
         })
     }
 
