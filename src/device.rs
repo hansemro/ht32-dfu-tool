@@ -385,11 +385,18 @@ impl HT32ISPDevice {
     pub fn read(&mut self, filepath: &PathBuf, addr: u32, n: u32) -> Result<(), Error> {
         let mut file = File::create(filepath).map_err(Error::FileError)?;
         let end = addr + n;
+        // read command seems to only accept lengths that are multiples of 64 bytes
         for offset in (addr..end).step_by(64) {
+            let left = end - offset;
+            let length = if left <= 64 {
+                left
+            } else {
+                64
+            };
             let cmd: [u8; 64] = HT32ISPCommand::read_flash_cmd(offset, 64).into();
             let mut buf = [0u8; 64];
             self.send_recv_cmd(&cmd[..], &mut buf[..])?;
-            file.write_all(&buf).map_err(Error::FileError)?;
+            file.write_all(&buf[..(length as usize)]).map_err(Error::FileError)?;
         }
         Ok(())
     }

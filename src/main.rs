@@ -116,7 +116,7 @@ fn main() {
                 args.length.unwrap()
             };
             assert!(info.flash_size() >= addr + length);
-            assert!(length > 0);
+            assert!(length >= 64);
             println!("Reading 0x{:04x}:0x{:04x} to {:?}...", addr, addr + length - 1, file);
             dev.read(&file, addr, length).expect("Read failed");
         }
