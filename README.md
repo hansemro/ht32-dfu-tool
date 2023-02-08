@@ -20,8 +20,7 @@ ht32-dfu-tool [OPTIONS] <COMMAND>
 Commands:
   list                          List detected devices
 
-  read <ADDR> <LENGTH> <FILE>   Read <LENGTH> bytes of flash starting at <ADDR> to
-                                <FILE>
+  read <ADDR> <FILE>            Read flash starting at <ADDR> to <FILE>
 
   write <ADDR> <FILE>           Write <FILE> to flash starting at <ADDR>
 
@@ -35,6 +34,7 @@ Options:
   -r, --reset             Reset after we're finished
   -m, --mass-erase        Mass-erase device before writing flash
   -v, --verify            Verify flash contents after writing flash
+  -c <LENGTH>             Number of bytes to read [default: entire flash]
   -h, --help              Print help
   -V, --version           Print version
 ```

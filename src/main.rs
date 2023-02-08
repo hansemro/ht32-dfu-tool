@@ -38,6 +38,9 @@ struct Args {
     #[arg(short, long, action = clap::ArgAction::SetTrue)]
     verify: bool,
 
+    #[arg(short = 'c', help = "Number of bytes to read [default: entire flash]")]
+    length: Option<u32>,
+
     #[command(subcommand)]
     action: Action
 }
@@ -51,8 +54,6 @@ enum Action {
         /// Address
         #[arg(help = "Start address")]
         addr: u32,
-        #[arg(help = "Number of bytes to read")]
-        length: u32,
         #[arg(help = "Output file path")]
         file: PathBuf,
     },
@@ -96,10 +97,15 @@ fn main() {
 
     match args.action {
         Action::List => (),
-        Action::Read { addr, length, file } => {
+        Action::Read { addr, file } => {
             let security_info = dev.get_security_info().expect("Unable to get device security status");
             assert!(!security_info.flash_security());
             let info = dev.get_info().expect("Unable to get device information");
+            let length = if args.length.is_none() {
+                info.flash_size() - addr
+            } else {
+                args.length.unwrap()
+            };
             assert!(info.flash_size() >= addr + length);
             assert!(length > 0);
             println!("Reading 0x{:04x}:0x{:04x} to {:?}...", addr, addr + length - 1, file);
