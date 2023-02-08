@@ -77,6 +77,7 @@ pub struct HT32ISPDevice {
     security_info: Option<HT32Security>,
 }
 
+/// HT32 device in ISP mode
 impl HT32ISPDevice {
     pub fn new(device: rusb::Device<rusb::GlobalContext>, vid: u16, pid: u16) -> Result<Self, Error> {
         // Find endpoints
@@ -386,14 +387,17 @@ impl HT32ISPDevice {
         }
     }
 
+    /// Write binary file to flash starting at `addr`.
     pub fn write(&mut self, filepath: &PathBuf, addr: u32) -> Result<(), Error> {
         self.write_verify(filepath, addr, true)
     }
 
+    /// Compare contents of flash to file starting at `addr`.
     pub fn verify(&mut self, filepath: &PathBuf, addr: u32) -> Result<(), Error> {
         self.write_verify(filepath, addr, false)
     }
 
+    /// Read `n`-bytes of flash starting at `addr` and write to file.
     pub fn read(&mut self, filepath: &PathBuf, addr: u32, n: u32) -> Result<(), Error> {
         let mut file = File::create(filepath).map_err(Error::FileError)?;
         let end = addr + n;
@@ -424,6 +428,7 @@ impl HT32ISPDevice {
         Ok(())
     }
 
+    /// Wipe flash contents, flash security, and page protections.
     pub fn mass_erase(&self) -> Result<(), Error> {
         let cmd: [u8; 64] = HT32ISPCommand::mass_erase_cmd().into();
         self.send_cmd(&cmd[..])?;
@@ -432,6 +437,7 @@ impl HT32ISPDevice {
     }
 }
 
+/// List of (HT32) devices found with the same VID and PID.
 pub struct HT32DeviceList {
     dev_list: Vec<rusb::Device<rusb::GlobalContext>>,
     vid: u16,
