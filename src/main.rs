@@ -58,7 +58,7 @@ struct Args {
 enum Action {
     /// List detected devices
     List,
-    /// Read <LENGTH> bytes of flash starting at <ADDR> to <FILE>
+    /// Read flash starting at <ADDR> to <FILE>
     Read {
         /// Address
         #[arg(help = "Start address")]
