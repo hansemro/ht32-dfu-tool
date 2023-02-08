@@ -306,10 +306,14 @@ impl HT32ISPDevice {
                     false
                 }
             }).collect::<Vec<_>>();
-        self.handle = Some(dev_list.remove(0).open()
-                           .map_err(|_| Error::ReconnectFailed)?);
-        self.claim()?;
-        Ok(())
+        if dev_list.len() == 0 {
+            Err(Error::ReconnectFailed)
+        } else {
+            self.handle = Some(dev_list.remove(0).open()
+                               .map_err(|_| Error::ReconnectFailed)?);
+            self.claim()?;
+            Ok(())
+        }
     }
 
     /// Reset to application firmware. Works even if BOOT pins are configured
