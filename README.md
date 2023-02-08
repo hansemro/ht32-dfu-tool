@@ -1,9 +1,14 @@
-ht32-dfu-tool: Holtek HT32 ISP Device Firmware Upgrade Tool
-===========================================================
+ht32-dfu-tool
+=============
 
-Compatability:
-- HT32F1xxx
-- HT32F52xxx
+A host-side DFU tool for Holtek HT32 devices in ISP mode over USB.
+
+Holtek HT32 processors feature a ROM ISP bootloader used for reprogramming
+flash, setting flash security, and verifying integrity of flash via USB or
+UART interface. By shorting the designated BOOT pin(s) and resetting, the
+device will start in ISP bootloader and can be detected over USB. Refer to
+the VMCR register in the Flash Memory Controller section in the User Manuals,
+to see which pins need to be shorted high/low to start in `Boot Loader` mode.
 
 ## Build
 
@@ -12,7 +17,7 @@ Build utility with cargo:
 cargo build -r
 ```
 
-## Usage
+## Usage Help
 
 ```
 ht32-dfu-tool [OPTIONS] <COMMAND>
@@ -38,3 +43,10 @@ Options:
   -h, --help              Print help
   -V, --version           Print version
 ```
+
+## Notes about ISP
+
+- Mass-erase wipes entire flash and disables security/protection, but is necessary for reprogramming locked devices.
+- Device does not reboot to ISP if resetting while the pins are not shorted correctly.
+    - A reset occurs after a mass-erase, so keep the pins shorted until after the write finishes.
+- Flash security prevents reading data from flash.
