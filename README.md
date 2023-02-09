@@ -1,7 +1,8 @@
 ht32-dfu-tool
 =============
 
-A host-side DFU tool for Holtek HT32 devices in ISP mode over USB.
+A host-side DFU tool for Holtek HT32 devices in In-System Programming (ISP)
+mode over USB.
 
 Holtek HT32 processors feature a ROM ISP bootloader used for reprogramming
 flash, setting flash security, and verifying integrity of flash via USB or
@@ -11,6 +12,8 @@ the VMCR register in the Flash Memory Controller section in the User Manuals
 to see which pins need to be shorted high/low to start in `Boot Loader` mode.
 
 ## Setup
+
+### Dependencies
 
 - libusb-1 (with headers)
 - cargo/rustup
