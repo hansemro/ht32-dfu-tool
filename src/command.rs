@@ -106,6 +106,20 @@ impl HT32ISPCommand {
         }
     }
 
+    /// HT32ISPCommand to erase pages of flash used by given region `addr` to
+    /// `addr + n - 1`.
+    ///
+    /// Page size varies by model and can be obtained with the info command.
+    pub fn page_erase_cmd(addr: u32, n: u32) -> Self {
+        Self {
+            command: 0x0,
+            subcommand: 0x8,
+            arg1: addr,
+            arg2: addr + n - 1,
+            data: [0u8; 52],
+        }
+    }
+
     /// HT32ISPCommand to reset device to application (AP) firmware.
     pub fn reset_ap_cmd() -> Self {
         Self {

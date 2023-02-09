@@ -184,7 +184,7 @@ impl HT32ISPDevice {
     }
 
     /// Attempt GET_REPORT request
-    pub fn get_report(&self, response: &mut [u8]) -> Result<(), Error> {
+    pub fn get_report(&self, response: &mut [u8]) -> Result<(u32, u32), Error> {
         // Get_Report request (USB HID version v1.11 spec)
         self.handle.as_ref().ok_or(Error::DeviceNotFound)?
             .read_control(
@@ -198,7 +198,16 @@ impl HT32ISPDevice {
                             response,
                             Duration::new(1, 0))
             .map_err(Error::UsbError)?;
-        Ok(())
+        let mut passed = 0;
+        let mut failed = 0;
+        for n in response {
+            if *n == 0x4f {
+                passed += 1;
+            } else if *n == 0x46 {
+                failed += 1;
+            }
+        }
+        Ok((passed, failed))
     }
 
     /// Get device information including model, ISP version, page size, and
@@ -321,7 +330,13 @@ impl HT32ISPDevice {
         Ok(())
     }
 
-    fn write_verify(&mut self, filepath: &PathBuf, addr: u32, write: bool) -> Result<(), Error> {
+    /// If `write` is true, erase then write binary file to flash starting at
+    /// `addr`. If `mass_erase` is true, then wipe entire flash. Otherwise,
+    /// erase pages of flash used by the file.
+    ///
+    /// Otherwise, if `write` is false, then check the region of flash against
+    /// the binary file.
+    fn write_verify(&mut self, filepath: &PathBuf, addr: u32, write: bool, mass_erase: bool) -> Result<(), Error> {
         let mut file = File::open(filepath).map_err(Error::FileError)?;
         let metadata = file.metadata().map_err(Error::FileError)?;
         if !metadata.is_file() {
@@ -331,11 +346,31 @@ impl HT32ISPDevice {
         let end: usize = addr as usize + metadata.len() as usize;
         assert!(info.flash_size() as usize > end);
 
+        if write {
+            if mass_erase {
+                // Mass-erase
+                println!("Mass-erasing flash...");
+                self.mass_erase()?;
+                // reset to apply changes to security bits
+                println!("Resetting device...");
+                self.reset_reconnect()?;
+            } else {
+                // Page-erase
+                println!("Erasing flash page(s)...");
+                self.page_erase(addr, metadata.len() as u32)?;
+            }
+            println!("Writing {:?} to flash region [0x{:04x}:0x{:04x}]...",
+                     filepath, addr, end - 1);
+        } else {
+            println!("Verifying flash region [0x{:04x}:0x{:04x}] against {:?}",
+                     addr, end - 1, filepath);
+        }
+
         // clear status
         let mut status = [0u8; 64];
         self.get_report(&mut status[..]).ok();
 
-        let pb = ProgressBar::new(end as u64);
+        let pb = ProgressBar::new(metadata.len() as u64);
         pb.set_style(ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})")
             .unwrap()
             .with_key("eta", |state: &ProgressState, w: &mut dyn std::fmt::Write| {
@@ -363,38 +398,36 @@ impl HT32ISPDevice {
             // check status every 30 write requests
             if left <= 52 || count >= 30 {
                 std::thread::sleep(Duration::new(1, 0));
-                self.get_report(&mut status[..])?;
-                let mut passed = 0;
-                for n in status {
-                    if n == 0x4f {
-                        passed += 1;
+                let (passed, failed) = self.get_report(&mut status[..])?;
+                if failed > 0 {
+                    if write {
+                        pb.abandon_with_message("Write failed");
+                        return Err(Error::WriteFailed);
+                    } else {
+                        pb.abandon_with_message("Verification failed");
+                        return Err(Error::CheckFailed);
                     }
                 }
                 count -= passed;
             }
-            pb.set_position(offset as u64 + length as u64);
+            pb.set_position(offset as u64 + length as u64 - addr as u64);
         }
-        if count > 0 {
-            pb.abandon_with_message("Write failed");
-            if write {
-                Err(Error::WriteFailed)
-            } else {
-                Err(Error::CheckFailed)
-            }
+        if write {
+            pb.finish_with_message("Verified flash region");
         } else {
-            pb.finish_with_message("Write finished");
-            Ok(())
+            pb.finish_with_message("Flashed flash region");
         }
+        Ok(())
     }
 
     /// Write binary file to flash starting at `addr`.
-    pub fn write(&mut self, filepath: &PathBuf, addr: u32) -> Result<(), Error> {
-        self.write_verify(filepath, addr, true)
+    pub fn write(&mut self, filepath: &PathBuf, addr: u32, mass_erase: bool) -> Result<(), Error> {
+        self.write_verify(filepath, addr, true, mass_erase)
     }
 
     /// Compare contents of flash to file starting at `addr`.
     pub fn verify(&mut self, filepath: &PathBuf, addr: u32) -> Result<(), Error> {
-        self.write_verify(filepath, addr, false)
+        self.write_verify(filepath, addr, false, false)
     }
 
     /// Read `n`-bytes of flash starting at `addr` and write to file.
@@ -431,6 +464,14 @@ impl HT32ISPDevice {
     /// Wipe flash contents, flash security, and page protections.
     pub fn mass_erase(&self) -> Result<(), Error> {
         let cmd: [u8; 64] = HT32ISPCommand::mass_erase_cmd().into();
+        self.send_cmd(&cmd[..])?;
+        std::thread::sleep(Duration::new(5, 0));
+        Ok(())
+    }
+
+    /// Erase pages of flash used by given region `addr` to `addr + n - 1`.
+    pub fn page_erase(&self, addr: u32, n: u32) -> Result<(), Error> {
+        let cmd: [u8; 64] = HT32ISPCommand::page_erase_cmd(addr, n).into();
         self.send_cmd(&cmd[..])?;
         std::thread::sleep(Duration::new(5, 0));
         Ok(())

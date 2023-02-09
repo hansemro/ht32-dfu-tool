@@ -125,23 +125,13 @@ fn main() {
             if !args.mass_erase && security_info.flash_security() {
                 panic!("Flash is secured. Mass-erase is required to write to flash.");
             }
-            if args.mass_erase {
-                println!("Performing mass-erase...");
-                dev.mass_erase().expect("Failed to perform mass-erase");
-                println!("Resetting device...");
-                dev.reset_reconnect().expect("Device failed to reconnect");
-            }
-            println!("Writing {:?} to 0x{:04x}...", file, addr);
-            dev.write(&file, addr).expect("Write failed");
-            println!("Writing finished");
+            dev.write(&file, addr, args.mass_erase).expect("Write failed");
             if args.verify {
-                println!("Verifying flash...");
                 dev.verify(&file, addr).expect("Flash verification failed");
-                println!("Validated");
             }
         }
         Action::Info => {
-            println!("Getting Device Info...");
+            println!("Getting device info...");
             dev.print_info().expect("Unable to get device information");
         }
     }
