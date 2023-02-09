@@ -51,15 +51,23 @@ pub const OB_ADDR: u32 = 0x1ff00000;
 pub struct HT32Security {
     flash_security: bool,
     option_byte_protection: bool,
+    page_protection: [u32; 4],
 }
 
 impl HT32Security {
+    /// Flash read and JTAG protection
     pub fn flash_security(&self) -> bool {
         self.flash_security
     }
 
+    /// Option byte page protection
     pub fn option_byte_protection(&self) -> bool {
         self.option_byte_protection
+    }
+
+    /// Page protection
+    pub fn page_protection(&self) -> [u32; 4] {
+        self.page_protection
     }
 }
 
@@ -249,12 +257,34 @@ impl HT32ISPDevice {
             let cmd: [u8; 64] = HT32ISPCommand::read_flash_cmd(OB_ADDR, 64).into();
             let mut buf = [0u8; 64];
             self.send_recv_cmd(&cmd[..], &mut buf[..])?;
+            // security/protection is enabled when bit is 0
             let flash_security = (buf[16] & 1) == 0;
             let option_byte_protection = (buf[16] & 2) == 0;
-            // TODO: check which pages are protected
+            let page_protection_0: u32 = (buf[0] as u32) |
+                    ((buf[1] as u32) << 8) |
+                    ((buf[2] as u32) << 16) |
+                    ((buf[3] as u32) << 24);
+            let page_protection_1: u32 = (buf[4] as u32) |
+                    ((buf[5] as u32) << 8) |
+                    ((buf[6] as u32) << 16) |
+                    ((buf[7] as u32) << 24);
+            let page_protection_2: u32 = (buf[8] as u32) |
+                    ((buf[9] as u32) << 8) |
+                    ((buf[10] as u32) << 16) |
+                    ((buf[11] as u32) << 24);
+            let page_protection_3: u32 = (buf[12] as u32) |
+                    ((buf[13] as u32) << 8) |
+                    ((buf[14] as u32) << 16) |
+                    ((buf[15] as u32) << 24);
             self.security_info = Some(HT32Security {
                 flash_security, 
-                option_byte_protection
+                option_byte_protection,
+                page_protection: [
+                    page_protection_0,
+                    page_protection_1,
+                    page_protection_2,
+                    page_protection_3
+                ]
             });
         }
         Ok(self.security_info.as_ref().unwrap())
@@ -274,6 +304,12 @@ impl HT32ISPDevice {
         let info = self.get_security_info()?;
         println!("Flash security: {}", info.flash_security());
         println!("Option byte protection: {}", info.option_byte_protection());
+        let page_protection = info.page_protection();
+        println!("Page protection: 0x{:08x} 0x{:08x} 0x{:08x} 0x{:08x}",
+                 page_protection[0],
+                 page_protection[1],
+                 page_protection[2],
+                 page_protection[3]);
         Ok(())
     }
 
