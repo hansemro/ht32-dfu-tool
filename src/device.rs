@@ -478,6 +478,63 @@ impl HT32ISPDevice {
         self.write_verify(filepath, addr, false, false)
     }
 
+    /// Set flash security, option byte protection, and page protection bits.
+    /// Changes get applied on the next reset.
+    ///
+    /// Cannot set option bytes page if option byte protection is already
+    /// enabled.
+    pub fn erase_write_option_bytes(&mut self, pp: [u32; 4], flash_security: bool, ob_protection: bool) -> Result<(), Error> {
+        let cp: u32 = !((flash_security as u32) | ((ob_protection as u32) << 1));
+        // checksum
+        let ck = pp[0] + pp[1] + pp[2] + pp[3] + cp;
+
+        let mut ob = [0u8; 52];
+        // 0x0 : pp0
+        ob[0] = pp[0] as u8;
+        ob[1] = (pp[0] >> 8) as u8;
+        ob[2] = (pp[0] >> 16) as u8;
+        ob[3] = (pp[0] >> 24) as u8;
+        // 0x4 : pp1
+        ob[4] = pp[1] as u8;
+        ob[5] = (pp[1] >> 8) as u8;
+        ob[6] = (pp[1] >> 16) as u8;
+        ob[7] = (pp[1] >> 24) as u8;
+        // 0x8 : pp2
+        ob[8] = pp[2] as u8;
+        ob[9] = (pp[2] >> 8) as u8;
+        ob[10] = (pp[2] >> 16) as u8;
+        ob[11] = (pp[2] >> 24) as u8;
+        // 0xc : pp3
+        ob[12] = pp[3] as u8;
+        ob[13] = (pp[3] >> 8) as u8;
+        ob[14] = (pp[3] >> 16) as u8;
+        ob[15] = (pp[3] >> 24) as u8;
+        // 0x10 : cp
+        ob[16] = cp as u8;
+        ob[17] = (cp >> 8) as u8;
+        ob[18] = (cp >> 16) as u8;
+        ob[19] = (cp >> 24) as u8;
+        // 0x20 : ck
+        ob[32] = ck as u8;
+        ob[33] = (ck >> 8) as u8;
+        ob[34] = (ck >> 16) as u8;
+        ob[35] = (ck >> 24) as u8;
+
+        // clear status
+        let mut status = [0u8; 64];
+        self.get_report(&mut status[..]).ok();
+
+        // erase
+        println!("Erasing option bytes page...");
+        self.page_erase(OB_ADDR, 1)?;
+
+        // write
+        println!("Writing option bytes...");
+        let cmd: [u8; 64] = HT32ISPCommand::write_flash_cmd(OB_ADDR, 52, ob).into();
+        self.send_cmd(&cmd[..])?;
+        Ok(())
+    }
+
     /// Read `n`-bytes of flash starting at `addr` and write to file.
     pub fn read(&mut self, filepath: &PathBuf, addr: u32, n: u32) -> Result<(), Error> {
         let mut file = File::create(filepath).map_err(Error::FileError)?;

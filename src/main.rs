@@ -77,6 +77,22 @@ enum Action {
         addr: u32,
         /// Input file path
         file: PathBuf,
+        /// Enable flash security
+        fs_en: Option<bool>,
+        /// Enable option byte protection
+        obp_en: Option<bool>,
+        /// Page protection for pages 0-31
+        #[arg(value_parser(parse_hex_or_dec))]
+        pp0: Option<u32>,
+        /// Page protection for pages 32-63
+        #[arg(value_parser(parse_hex_or_dec))]
+        pp1: Option<u32>,
+        /// Page protection for pages 64-95
+        #[arg(value_parser(parse_hex_or_dec))]
+        pp2: Option<u32>,
+        /// Page protection for pages 96-127
+        #[arg(value_parser(parse_hex_or_dec))]
+        pp3: Option<u32>,
     },
     /// Check device info
     Info,
@@ -137,14 +153,26 @@ fn main() {
             println!("Reading 0x{:04x}:0x{:04x} to {:?}...", addr, addr + length - 1, file);
             dev.read(&file, addr, length).expect("Read failed");
         }
-        Action::Write { addr, file } => {
+        Action::Write { addr, file, pp0, fs_en, obp_en, pp1, pp2, pp3 } => {
             let security_info = dev.get_security_info().expect("Unable to get device security status");
             if !args.mass_erase && security_info.flash_security() {
                 panic!("Flash is secured. Mass-erase is required to write to flash.");
             }
+            // TODO: check if page is protected before writing
             dev.write(&file, addr, args.mass_erase).expect("Write failed");
             if args.verify {
                 dev.verify(&file, addr).expect("Flash verification failed");
+            }
+            if fs_en.is_some() {
+                // default to no security or page protection
+                let fs_en = fs_en.unwrap_or(false);
+                let obp_en = obp_en.unwrap_or(false);
+                let pp0 = pp0.unwrap_or(0xffffffff);
+                let pp1 = pp1.unwrap_or(0xffffffff);
+                let pp2 = pp2.unwrap_or(0xffffffff);
+                let pp3 = pp3.unwrap_or(0xffffffff);
+                dev.erase_write_option_bytes([pp0, pp1, pp2, pp3], fs_en, obp_en)
+                    .expect("Failed to write option bytes");
             }
         }
         Action::Info => {

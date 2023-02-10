@@ -50,17 +50,20 @@ Target binary is located at `./target/release/ht32-dfu-tool[.exe]`.
 ht32-dfu-tool [OPTIONS] <COMMAND>
 
 Commands:
-  list                          List detected devices
+  list                  List detected devices
 
-  read <ADDR> <FILE>            Read flash starting at <ADDR> to <FILE>
+  read <ADDR> <FILE>    Read flash starting at <ADDR> to <FILE>
 
-  write <ADDR> <FILE>           Write <FILE> to flash starting at <ADDR>
+  write <ADDR> <FILE> [FS_EN] [OBP_EN] [PP0] [PP1] [PP2] [PP3]
+                        Write <FILE> to flash starting at <ADDR>, and
+                        optionally set flash security, option byte protection,
+                        and page protection.
 
-  info                          Check device info
-  reset                         Reset to application firmware
-  reset-iap                     Reset to IAP (or ISP depending on BOOT pin(s))
+  info                  Check device info
+  reset                 Reset to application firmware
+  reset-iap             Reset to IAP (or ISP depending on BOOT pin(s))
 
-  help                          Print this message or the help of the given subcommand(s)
+  help                  Print this message or the help of the given subcommand(s)
 
 Options:
   -d, --device <VID:PID>  <vendor_id>:<product_id> [default: 04d9:8010]
