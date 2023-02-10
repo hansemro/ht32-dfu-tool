@@ -47,7 +47,8 @@ struct Args {
     #[arg(short, long, action = clap::ArgAction::SetTrue)]
     verify: bool,
 
-    #[arg(short = 'c', value_parser(parse_hex_or_dec), help = "Number of bytes to read [default: entire flash]")]
+    /// Number of bytes to read [default: rest of flash]"
+    #[arg(short = 'c', value_parser(parse_hex_or_dec))]
     length: Option<u32>,
 
     #[command(subcommand)]
@@ -70,7 +71,7 @@ enum Action {
     Write {
         #[arg(help = "Start address")]
         addr: u32,
-        #[arg(help = "Input File path")]
+        #[arg(help = "Input file path")]
         file: PathBuf,
     },
     /// Check device info

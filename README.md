@@ -66,7 +66,7 @@ Options:
   -r, --reset             Reset after we're finished
   -m, --mass-erase        Mass-erase device before writing flash
   -v, --verify            Verify flash contents after writing flash
-  -c <LENGTH>             Number of bytes to read [default: entire flash]
+  -c <LENGTH>             Number of bytes to read [default: rest of flash]
   -h, --help              Print help
   -V, --version           Print version
 ```
