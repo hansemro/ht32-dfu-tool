@@ -63,6 +63,7 @@ Commands:
 Options:
   -d, --device <VID:PID>  <vendor_id>:<product_id> [default: 04d9:8010]
   -n, --devnum <DEV_NUM>  Match given device number in list
+  -w, --wait              Wait for device to appear
   -r, --reset             Reset after we're finished
   -m, --mass-erase        Mass-erase device before writing flash
   -v, --verify            Verify flash contents after writing flash

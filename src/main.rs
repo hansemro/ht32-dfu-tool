@@ -36,6 +36,9 @@ struct Args {
     /// Match given device number in list
     #[arg(short = 'n', long, id = "DEV_NUM")]
     devnum: Option<u32>,
+    /// Wait for device to appear
+    #[arg(short, long, action = clap::ArgAction::SetTrue)]
+    wait: bool,
 
     /// Reset after we're finished
     #[arg(short, long, action = clap::ArgAction::SetTrue)]
@@ -84,11 +87,19 @@ fn main() {
 
     let (vid, pid) = args.device;
 
-    let mut ht32_devs = HT32DeviceList::new(vid, pid).expect("No HT32 ISP devices detected");
+    let mut ht32_devs = HT32DeviceList::new(vid, pid).expect("Failed to get device list");
 
     if args.action == Action::List {
         ht32_devs.print_list();
         return;
+    }
+
+    if args.wait {
+        println!("Waiting for device...");
+        while ht32_devs.len() == 0 {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            ht32_devs = HT32DeviceList::new(vid, pid).expect("Failed to get device list");
+        }
     }
 
     if (ht32_devs.len() > 1) && args.devnum.is_none() {
