@@ -395,10 +395,13 @@ impl HT32ISPDevice {
             };
             self.send_cmd(&cmd[..])?;
             count += 1;
-            // check status every 30 write requests
+            // check status every 30 write/verify requests
             if left <= 52 || count >= 30 {
-                std::thread::sleep(Duration::new(1, 0));
+                std::thread::sleep(Duration::from_millis(100));
                 let (passed, failed) = self.get_report(&mut status[..])?;
+                if count == 30 {
+                    assert!(passed + failed == 30);
+                }
                 if failed > 0 {
                     if write {
                         pb.abandon_with_message("Write failed");
