@@ -389,7 +389,7 @@ impl HT32ISPDevice {
         }
         let info = self.get_info()?;
         let end: usize = addr as usize + metadata.len() as usize;
-        assert!(info.flash_size() as usize > end);
+        assert!(info.flash_size() as usize >= end);
 
         if write {
             if mass_erase {
