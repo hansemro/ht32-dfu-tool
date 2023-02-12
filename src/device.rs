@@ -19,6 +19,7 @@ pub enum Error {
     InvalidFilePath,
     WriteFailed,
     CheckFailed,
+    PageProtected(u8),
 }
 
 pub struct HT32ISPInfo {
@@ -390,6 +391,20 @@ impl HT32ISPDevice {
         let info = self.get_info()?;
         let end: usize = addr as usize + metadata.len() as usize;
         assert!(info.flash_size() as usize >= end);
+
+        if write & !mass_erase {
+            let start_page = addr / (info.page_size() as u32);
+            let end_page = (addr + metadata.len() as u32 - 1) / (info.page_size() as u32);
+            // check if range of pages overlap page protected bits
+            let security_info = self.get_security_info()?;
+            for page in start_page..=end_page {
+                let index = page / 32;
+                let offset = page % 32;
+                if (security_info.page_protection[index as usize] & (1 << offset)) == 0 {
+                    return Err(Error::PageProtected(page as u8));
+                }
+            }
+        }
 
         if write {
             if mass_erase {

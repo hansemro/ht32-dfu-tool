@@ -154,12 +154,15 @@ fn main() {
             dev.read(&file, addr, length).expect("Read failed");
         }
         Action::Write { addr, file, pp0, fs_en, obp_en, pp1, pp2, pp3 } => {
-            let security_info = dev.get_security_info().expect("Unable to get device security status");
-            if !args.mass_erase && security_info.flash_security() {
-                panic!("Flash is secured. Mass-erase is required to write to flash.");
+            match dev.write(&file, addr, args.mass_erase) {
+                Ok(_) => (),
+                Err(e) => match e {
+                    device::Error::PageProtected(page_num) => {
+                        panic!("Cannot erase or write to protected page: {}", page_num);
+                    }
+                    _ => panic!("Write failed"),
+                },
             }
-            // TODO: check if page is protected before writing
-            dev.write(&file, addr, args.mass_erase).expect("Write failed");
             if args.verify {
                 dev.verify(&file, addr).expect("Flash verification failed");
             }
