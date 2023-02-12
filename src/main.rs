@@ -61,17 +61,18 @@ enum Action {
     List,
     /// Read flash starting at <ADDR> to <FILE>
     Read {
-        /// Address
-        #[arg(help = "Start address")]
+        /// Start address (use 0x prefix if hexadecimal)
+        #[arg(value_parser(parse_hex_or_dec))]
         addr: u32,
-        #[arg(help = "Output file path")]
+        /// Output file path
         file: PathBuf,
     },
     /// Write <FILE> to flash starting at <ADDR>
     Write {
-        #[arg(help = "Start address")]
+        /// Start address (use 0x prefix if hexadecimal)
+        #[arg(value_parser(parse_hex_or_dec))]
         addr: u32,
-        #[arg(help = "Input file path")]
+        /// Input file path
         file: PathBuf,
     },
     /// Check device info
