@@ -108,7 +108,7 @@ fn main() {
 
     let devnum = args.devnum.unwrap_or(0) as usize;
     if devnum >= ht32_devs.len() {
-        panic!("Cannot find device devnum. Check device list.");
+        panic!("Cannot find device {}. Check device list.", devnum);
     }
 
     let mut dev = ht32_devs.get_dev(devnum).unwrap();
