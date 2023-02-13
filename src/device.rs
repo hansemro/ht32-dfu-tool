@@ -279,14 +279,10 @@ impl HT32ISPDevice {
 
     /// Reset device and attempt to reconnect device
     pub fn reset_reconnect(&mut self) -> Result<(), Error> {
-        let cmd: [u8; 64] = HT32ISPCommand::reset_iap_cmd().into();
-        self.send_cmd(&cmd[..])?;
-        std::thread::sleep(Duration::new(3, 0));
-        // invalidate handle
-        self.handle = None;
-        self.info = None;
-        self.security_info = None;
+        self.reset_iap()?;
+        println!("Waiting for device to reconnect...");
 
+        std::thread::sleep(Duration::new(3, 0));
         // Attempt to reconnect by locating new device handle based on previous
         // bus and port numbers. This works only if BOOT pin(s) are configured
         // to boot into ISP.
@@ -324,6 +320,19 @@ impl HT32ISPDevice {
         let cmd: [u8; 64] = HT32ISPCommand::reset_ap_cmd().into();
         self.send_cmd(&cmd[..])?;
         // invalidate handle
+        self.release().ok();
+        self.handle = None;
+        self.info = None;
+        self.security_info = None;
+        Ok(())
+    }
+
+    /// Reset to IAP/ISP firmware depending on how BOOT pins are configured.
+    pub fn reset_iap(&mut self) -> Result<(), Error> {
+        let cmd: [u8; 64] = HT32ISPCommand::reset_iap_cmd().into();
+        self.send_cmd(&cmd[..])?;
+        // invalidate handle
+        self.release().ok();
         self.handle = None;
         self.info = None;
         self.security_info = None;

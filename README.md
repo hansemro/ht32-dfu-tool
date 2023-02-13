@@ -57,6 +57,8 @@ Commands:
   write <ADDR> <FILE>           Write <FILE> to flash starting at <ADDR>
 
   info                          Check device info
+  reset                         Reset to application firmware
+  reset-iap                     Reset to IAP (or ISP depending on BOOT pin(s))
 
   help                          Print this message or the help of the given subcommand(s)
 

@@ -80,6 +80,10 @@ enum Action {
     },
     /// Check device info
     Info,
+    /// Reset to application firmware
+    Reset,
+    /// Reset to IAP (or ISP depending on BOOT pin(s))
+    ResetIAP,
 }
 
 fn main() {
@@ -146,6 +150,16 @@ fn main() {
         Action::Info => {
             println!("Getting device info...");
             dev.print_info().expect("Unable to get device information");
+        }
+        Action::Reset => {
+            println!("Resetting...");
+            dev.reset_app().ok();
+            return;
+        }
+        Action::ResetIAP => {
+            println!("Resetting to IAP/ISP...");
+            dev.reset_iap().ok();
+            return;
         }
     }
 
