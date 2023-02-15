@@ -307,7 +307,7 @@ impl HT32ISPDevice {
         println!("Flash security: {}", info.flash_security());
         println!("Option byte protection: {}", info.option_byte_protection());
         let page_protection = info.page_protection();
-        println!("Page protection: 0x{:08x} 0x{:08x} 0x{:08x} 0x{:08x}",
+        println!("Page protection: {:#08x} {:#08x} {:#08x} {:#08x}",
                  page_protection[0],
                  page_protection[1],
                  page_protection[2],
@@ -420,10 +420,10 @@ impl HT32ISPDevice {
                 println!("Erasing flash page(s)...");
                 self.page_erase(addr, metadata.len() as u32)?;
             }
-            println!("Writing {:?} to flash region [0x{:04x}:0x{:04x}]...",
+            println!("Writing {:?} to flash region [{:#04x}:{:#04x}]...",
                      filepath, addr, end - 1);
         } else {
-            println!("Verifying flash region [0x{:04x}:0x{:04x}] against {:?}",
+            println!("Verifying flash region [{:#04x}:{:#04x}] against {:?}",
                      addr, end - 1, filepath);
         }
 
@@ -559,6 +559,7 @@ impl HT32ISPDevice {
     pub fn read(&mut self, filepath: &PathBuf, addr: u32, n: u32) -> Result<(), Error> {
         let mut file = File::create(filepath).map_err(Error::FileError)?;
         let end = addr + n;
+        println!("Reading {:#04x}:0x{:#04x} to {:?}...", addr, end - 1, filepath);
 
         let pb = ProgressBar::new(end as u64);
         pb.set_style(ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})")
