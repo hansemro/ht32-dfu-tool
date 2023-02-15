@@ -19,6 +19,7 @@ pub enum Error {
     InvalidFilePath,
     WriteFailed,
     CheckFailed,
+    OptionBytePageProtected,
     PageProtected(u8),
 }
 
@@ -499,6 +500,10 @@ impl HT32ISPDevice {
     /// Cannot set option bytes page if option byte protection is already
     /// enabled.
     pub fn erase_write_option_bytes(&mut self, pp: [u32; 4], flash_security: bool, ob_protection: bool) -> Result<(), Error> {
+        let security_info = self.get_security_info()?;
+        if security_info.option_byte_protection() {
+            return Err(Error::OptionBytePageProtected);
+        }
         let cp: u32 = !((flash_security as u32) | ((ob_protection as u32) << 1));
         // checksum
         let ck = pp[0] + pp[1] + pp[2] + pp[3] + cp;
