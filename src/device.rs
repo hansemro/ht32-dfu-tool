@@ -651,15 +651,28 @@ impl HT32DeviceList {
                 Err(_) => continue,
             };
 
-            println!(
-                "Device {}: [{:04x}:{:04x}] Bus={} Port={} Addr={}",
-                count,
-                device_desc.vendor_id(),
-                device_desc.product_id(),
-                dev.bus_number(),
-                dev.port_number(),
-                dev.address());
-            count += 1;
+            if let Ok(mut ht32_dev) = HT32ISPDevice::new(dev, self.vid, self.pid) {
+                ht32_dev.claim().unwrap();
+                let info = ht32_dev.get_info().unwrap();
+                let model = if info.model() != 0 {
+                    format!("HT32F{:x}", info.model()).to_string()
+                } else {
+                    String::from("Unknown")
+                };
+
+                println!(
+                    "Device {}: [{:04x}:{:04x}] Model={} Bus={} Port={} Addr={}",
+                    count,
+                    device_desc.vendor_id(),
+                    device_desc.product_id(),
+                    model,
+                    dev.bus_number(),
+                    dev.port_number(),
+                    dev.address());
+
+                ht32_dev.release().unwrap();
+                count += 1;
+            };
         }
     }
 }
