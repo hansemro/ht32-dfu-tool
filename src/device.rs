@@ -89,7 +89,7 @@ pub struct HT32ISPDevice {
 
 /// HT32 device in ISP mode
 impl HT32ISPDevice {
-    pub fn new(device: rusb::Device<rusb::GlobalContext>, vid: u16, pid: u16) -> Result<Self, Error> {
+    pub fn new(device: &rusb::Device<rusb::GlobalContext>, vid: u16, pid: u16) -> Result<Self, Error> {
         // Find endpoints
         let mut ep_in: Option<u8> = None;
         let mut ep_out: Option<u8> = None;
@@ -638,7 +638,7 @@ impl HT32DeviceList {
         if n >= self.len() {
             Err(Error::DeviceNotFound)
         } else {
-            Ok(HT32ISPDevice::new(self.dev_list.remove(n), self.vid, self.pid)?)
+            Ok(HT32ISPDevice::new(&self.dev_list[n], self.vid, self.pid)?)
         }
     }
 
