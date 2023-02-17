@@ -6,7 +6,7 @@ use std::time::Duration;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::PathBuf;
-use crc16::{State, XMODEM};
+use crc::{Crc, CRC_16_XMODEM};
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 
 #[derive(Debug)]
@@ -172,7 +172,8 @@ impl HT32ISPDevice {
         _cmd[..].copy_from_slice(cmd);
         _cmd[2] = 0;
         _cmd[3] = 0;
-        let crc = State::<XMODEM>::calculate(&_cmd);
+        let xmodem = Crc::<u16>::new(&CRC_16_XMODEM);
+        let crc = xmodem.checksum(&_cmd);
         _cmd[2] = crc as u8;
         _cmd[3] = (crc >> 8) as u8;
         self.handle.as_ref().ok_or(Error::DeviceNotFound)?
