@@ -562,7 +562,7 @@ impl HT32ISPDevice {
         let end = addr + n;
         println!("Reading {:#04x}:0x{:#04x} to {:?}...", addr, end - 1, filepath);
 
-        let pb = ProgressBar::new(end as u64);
+        let pb = ProgressBar::new(n as u64);
         pb.set_style(ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})")
             .unwrap()
             .with_key("eta", |state: &ProgressState, w: &mut dyn std::fmt::Write| {
@@ -582,7 +582,7 @@ impl HT32ISPDevice {
             let mut buf = [0u8; 64];
             self.send_recv_cmd(&cmd[..], &mut buf[..])?;
             file.write_all(&buf[..(length as usize)]).map_err(Error::FileError)?;
-            pb.set_position((offset + length) as u64);
+            pb.set_position(offset as u64 + length as u64 - addr as u64);
         }
         pb.finish();
         Ok(())
