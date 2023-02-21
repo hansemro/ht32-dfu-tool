@@ -83,3 +83,12 @@ Options:
 - Device does not reboot to ISP if resetting while the pins are not shorted correctly.
     - A reset occurs after a mass-erase, so keep the pins shorted until after the write finishes.
 - Flash security prevents reading data from flash.
+
+## License
+
+Distributed under the [GPL-2.0 License](LICENSE).
+
+- [crc-rs](https://github.com/mrhooray/crc-rs): MIT
+- [clap](https://github.com/clap-rs/clap): MIT
+- [indicatif](https://github.com/console-rs/indicatif): MIT
+- [rusb](https://github.com/a1ien/rusb): MIT
