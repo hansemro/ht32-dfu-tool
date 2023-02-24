@@ -34,6 +34,20 @@ pacman -S base-devel \
         mingw-w64-x86_64-libusb
 ```
 
+### Linux Udev Rule
+
+Create a file `/etc/udev/rules.d/99-ht32.rules` containing the following:
+```
+# Holtek Interfaces
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="04d9", ATTRS{idProduct}=="8010", MODE="0666"
+```
+
+Resetart your computer or reload udev by running the follwing commands:
+```
+sudo udevadm control --reload
+sudo udevadm trigger
+```
+
 ## Build from Source
 
 Build the utility with cargo:
