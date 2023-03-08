@@ -2,12 +2,12 @@
 // Copyright (c) 2023 Hansem Ro <hansemro@outlook.com>
 
 use crate::command::HT32ISPCommand;
-use std::time::Duration;
+use crc::{Crc, CRC_16_XMODEM};
+use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::PathBuf;
-use crc::{Crc, CRC_16_XMODEM};
-use indicatif::{ProgressBar, ProgressState, ProgressStyle};
+use std::time::Duration;
 
 #[derive(Debug)]
 pub enum Error {
@@ -89,16 +89,18 @@ pub struct HT32ISPDevice {
 
 /// HT32 device in ISP mode
 impl HT32ISPDevice {
-    pub fn new(device: &rusb::Device<rusb::GlobalContext>, vid: u16, pid: u16) -> Result<Self, Error> {
+    pub fn new(
+        device: &rusb::Device<rusb::GlobalContext>,
+        vid: u16,
+        pid: u16,
+    ) -> Result<Self, Error> {
         // Find endpoints
         let mut ep_in: Option<u8> = None;
         let mut ep_out: Option<u8> = None;
         let mut interface: Option<u8> = None;
-        let device_desc = device.device_descriptor() 
-            .map_err(Error::UsbError)?;
+        let device_desc = device.device_descriptor().map_err(Error::UsbError)?;
         'outer: for n in 0..device_desc.num_configurations() {
-            let config_desc = device.config_descriptor(n)
-                .map_err(Error::UsbError)?;
+            let config_desc = device.config_descriptor(n).map_err(Error::UsbError)?;
             for iface in config_desc.interfaces() {
                 for iface_desc in iface.descriptors() {
                     for ep_desc in iface_desc.endpoint_descriptors() {
@@ -147,9 +149,14 @@ impl HT32ISPDevice {
 
     /// Attempt to claim device
     pub fn claim(&mut self) -> Result<(), Error> {
-        self.handle.as_mut().ok_or(Error::DeviceNotFound)?
-            .set_auto_detach_kernel_driver(true).ok();
-        self.handle.as_mut().ok_or(Error::DeviceNotFound)?
+        self.handle
+            .as_mut()
+            .ok_or(Error::DeviceNotFound)?
+            .set_auto_detach_kernel_driver(true)
+            .ok();
+        self.handle
+            .as_mut()
+            .ok_or(Error::DeviceNotFound)?
             .claim_interface(self.interface)
             .map_err(Error::UsbError)?;
         Ok(())
@@ -157,9 +164,15 @@ impl HT32ISPDevice {
 
     /// Attempt to release device
     pub fn release(&mut self) -> Result<(), Error> {
-        self.handle.as_mut().ok_or(Error::DeviceNotFound)?
-            .set_auto_detach_kernel_driver(false).ok();
-        self.handle.as_mut().ok_or(Error::DeviceNotFound)?.release_interface(self.interface)
+        self.handle
+            .as_mut()
+            .ok_or(Error::DeviceNotFound)?
+            .set_auto_detach_kernel_driver(false)
+            .ok();
+        self.handle
+            .as_mut()
+            .ok_or(Error::DeviceNotFound)?
+            .release_interface(self.interface)
             .map_err(Error::UsbError)?;
         Ok(())
     }
@@ -176,38 +189,46 @@ impl HT32ISPDevice {
         let crc = xmodem.checksum(&_cmd);
         _cmd[2] = crc as u8;
         _cmd[3] = (crc >> 8) as u8;
-        self.handle.as_ref().ok_or(Error::DeviceNotFound)?
+        self.handle
+            .as_ref()
+            .ok_or(Error::DeviceNotFound)?
             .write_interrupt(self.ep_out, &_cmd, Duration::new(1, 0))
             .map_err(Error::UsbError)
     }
 
     /// Attempt to read data from device's input endpoint
     fn recv(&self, buf: &mut [u8]) -> Result<usize, Error> {
-        self.handle.as_ref().ok_or(Error::DeviceNotFound)?
+        self.handle
+            .as_ref()
+            .ok_or(Error::DeviceNotFound)?
             .read_interrupt(self.ep_in, buf, Duration::new(1, 0))
             .map_err(Error::UsbError)
     }
 
     /// Send `cmd` to device and get its `response`
-    fn send_recv_cmd(&self, cmd: &[u8], response: &mut [u8])
-            -> Result<(usize, usize), Error> {
+    fn send_recv_cmd(&self, cmd: &[u8], response: &mut [u8]) -> Result<(usize, usize), Error> {
         Ok((self.send_cmd(cmd)?, self.recv(response)?))
     }
 
     /// Attempt GET_REPORT request
     pub fn get_report(&self, response: &mut [u8]) -> Result<(u32, u32), Error> {
         // Get_Report request (USB HID version v1.11 spec)
-        self.handle.as_ref().ok_or(Error::DeviceNotFound)?
+        self.handle
+            .as_ref()
+            .ok_or(Error::DeviceNotFound)?
             .read_control(
-            /* bmRequest */ rusb::request_type(
-                                rusb::Direction::In,
-                                rusb::RequestType::Class,
-                                rusb::Recipient::Interface),
-            /* bRequest */  0x01,
-            /* wValue */    0x0100,
-            /* wIndex */    self.interface as u16,
-                            response,
-                            Duration::new(1, 0))
+                /* bmRequest */
+                rusb::request_type(
+                    rusb::Direction::In,
+                    rusb::RequestType::Class,
+                    rusb::Recipient::Interface,
+                ),
+                /* bRequest */ 0x01,
+                /* wValue */ 0x0100,
+                /* wIndex */ self.interface as u16,
+                response,
+                Duration::new(1, 0),
+            )
             .map_err(Error::UsbError)?;
         let mut passed = 0;
         let mut failed = 0;
@@ -230,16 +251,14 @@ impl HT32ISPDevice {
             self.send_recv_cmd(&cmd[..], &mut info[..])?;
             let version: u16 = (info[2] as u16) | ((info[3] as u16) << 8);
             let model: u32 = match version {
-                0x100 => {
-                    (info[0] as u32) | ((info[1] as u32) << 8)
-                }
+                0x100 => (info[0] as u32) | ((info[1] as u32) << 8),
                 0x101 => {
-                    (info[16] as u32) |
-                        ((info[17] as u32) << 8) |
-                        ((info[18] as u32) << 16) |
-                        ((info[19] as u32) << 24)
+                    (info[16] as u32)
+                        | ((info[17] as u32) << 8)
+                        | ((info[18] as u32) << 16)
+                        | ((info[19] as u32) << 24)
                 }
-                _ => 0
+                _ => 0,
             };
             let page_size: u16 = (info[6] as u16) | ((info[7] as u16) << 8);
             let flash_page_count: u16 = (info[8] as u16) | ((info[9] as u16) << 8);
@@ -248,7 +267,7 @@ impl HT32ISPDevice {
                 model,
                 version,
                 page_size,
-                flash_size
+                flash_size,
             });
         }
         Ok(self.info.as_ref().unwrap())
@@ -263,31 +282,31 @@ impl HT32ISPDevice {
             // security/protection is enabled when bit is 0
             let flash_security = (buf[16] & 1) == 0;
             let option_byte_protection = (buf[16] & 2) == 0;
-            let page_protection_0: u32 = (buf[0] as u32) |
-                    ((buf[1] as u32) << 8) |
-                    ((buf[2] as u32) << 16) |
-                    ((buf[3] as u32) << 24);
-            let page_protection_1: u32 = (buf[4] as u32) |
-                    ((buf[5] as u32) << 8) |
-                    ((buf[6] as u32) << 16) |
-                    ((buf[7] as u32) << 24);
-            let page_protection_2: u32 = (buf[8] as u32) |
-                    ((buf[9] as u32) << 8) |
-                    ((buf[10] as u32) << 16) |
-                    ((buf[11] as u32) << 24);
-            let page_protection_3: u32 = (buf[12] as u32) |
-                    ((buf[13] as u32) << 8) |
-                    ((buf[14] as u32) << 16) |
-                    ((buf[15] as u32) << 24);
+            let page_protection_0: u32 = (buf[0] as u32)
+                | ((buf[1] as u32) << 8)
+                | ((buf[2] as u32) << 16)
+                | ((buf[3] as u32) << 24);
+            let page_protection_1: u32 = (buf[4] as u32)
+                | ((buf[5] as u32) << 8)
+                | ((buf[6] as u32) << 16)
+                | ((buf[7] as u32) << 24);
+            let page_protection_2: u32 = (buf[8] as u32)
+                | ((buf[9] as u32) << 8)
+                | ((buf[10] as u32) << 16)
+                | ((buf[11] as u32) << 24);
+            let page_protection_3: u32 = (buf[12] as u32)
+                | ((buf[13] as u32) << 8)
+                | ((buf[14] as u32) << 16)
+                | ((buf[15] as u32) << 24);
             self.security_info = Some(HT32Security {
-                flash_security, 
+                flash_security,
                 option_byte_protection,
                 page_protection: [
                     page_protection_0,
                     page_protection_1,
                     page_protection_2,
-                    page_protection_3
-                ]
+                    page_protection_3,
+                ],
             });
         }
         Ok(self.security_info.as_ref().unwrap())
@@ -308,11 +327,10 @@ impl HT32ISPDevice {
         println!("Flash security: {}", info.flash_security());
         println!("Option byte protection: {}", info.option_byte_protection());
         let page_protection = info.page_protection();
-        println!("Page protection: {:#08x} {:#08x} {:#08x} {:#08x}",
-                 page_protection[0],
-                 page_protection[1],
-                 page_protection[2],
-                 page_protection[3]);
+        println!(
+            "Page protection: {:#08x} {:#08x} {:#08x} {:#08x}",
+            page_protection[0], page_protection[1], page_protection[2], page_protection[3]
+        );
         Ok(())
     }
 
@@ -329,25 +347,26 @@ impl HT32ISPDevice {
             .map_err(Error::UsbError)?
             .iter()
             .filter(|dev| {
-                if (dev.bus_number() == self.bus_number)
-                    && (dev.port_number() == self.port_number)
+                if (dev.bus_number() == self.bus_number) && (dev.port_number() == self.port_number)
                 {
                     match dev.device_descriptor() {
-                        Ok(d) => {
-                            (d.vendor_id() == self.vid)
-                                && (d.product_id() == self.pid)
-                        }
+                        Ok(d) => (d.vendor_id() == self.vid) && (d.product_id() == self.pid),
                         Err(_) => false,
                     }
                 } else {
                     false
                 }
-            }).collect::<Vec<_>>();
+            })
+            .collect::<Vec<_>>();
         if dev_list.is_empty() {
             Err(Error::ReconnectFailed)
         } else {
-            self.handle = Some(dev_list.remove(0).open()
-                               .map_err(|_| Error::ReconnectFailed)?);
+            self.handle = Some(
+                dev_list
+                    .remove(0)
+                    .open()
+                    .map_err(|_| Error::ReconnectFailed)?,
+            );
             self.claim()?;
             Ok(())
         }
@@ -384,7 +403,13 @@ impl HT32ISPDevice {
     ///
     /// Otherwise, if `write` is false, then check the region of flash against
     /// the binary file.
-    fn write_verify(&mut self, filepath: &PathBuf, addr: u32, write: bool, mass_erase: bool) -> Result<(), Error> {
+    fn write_verify(
+        &mut self,
+        filepath: &PathBuf,
+        addr: u32,
+        write: bool,
+        mass_erase: bool,
+    ) -> Result<(), Error> {
         let mut file = File::open(filepath).map_err(Error::FileError)?;
         let metadata = file.metadata().map_err(Error::FileError)?;
         if !metadata.is_file() {
@@ -421,11 +446,19 @@ impl HT32ISPDevice {
                 println!("Erasing flash page(s)...");
                 self.page_erase(addr, metadata.len() as u32)?;
             }
-            println!("Writing {:?} to flash region [{:#04x}:{:#04x}]...",
-                     filepath, addr, end - 1);
+            println!(
+                "Writing {:?} to flash region [{:#04x}:{:#04x}]...",
+                filepath,
+                addr,
+                end - 1
+            );
         } else {
-            println!("Verifying flash region [{:#04x}:{:#04x}] against {:?}",
-                     addr, end - 1, filepath);
+            println!(
+                "Verifying flash region [{:#04x}:{:#04x}] against {:?}",
+                addr,
+                end - 1,
+                filepath
+            );
         }
 
         // clear status
@@ -443,12 +476,8 @@ impl HT32ISPDevice {
         let mut count = 0;
         for offset in ((addr as usize)..end).step_by(52) {
             let left = end as u32 - offset as u32;
-            let length = if left <= 52 {
-                left
-            } else {
-                52
-            };
-            let mut data = [0u8; 52]; 
+            let length = if left <= 52 { left } else { 52 };
+            let mut data = [0u8; 52];
             file.read(&mut data[..]).map_err(Error::FileError)?;
             let cmd: [u8; 64] = if write {
                 HT32ISPCommand::write_flash_cmd(offset as u32, length, data).into()
@@ -500,7 +529,12 @@ impl HT32ISPDevice {
     ///
     /// Cannot set option bytes page if option byte protection is already
     /// enabled.
-    pub fn erase_write_option_bytes(&mut self, pp: [u32; 4], flash_security: bool, ob_protection: bool) -> Result<(), Error> {
+    pub fn erase_write_option_bytes(
+        &mut self,
+        pp: [u32; 4],
+        flash_security: bool,
+        ob_protection: bool,
+    ) -> Result<(), Error> {
         let security_info = self.get_security_info()?;
         if security_info.option_byte_protection() {
             return Err(Error::OptionBytePageProtected);
@@ -560,7 +594,12 @@ impl HT32ISPDevice {
     pub fn read(&mut self, filepath: &PathBuf, addr: u32, n: u32) -> Result<(), Error> {
         let mut file = File::create(filepath).map_err(Error::FileError)?;
         let end = addr + n;
-        println!("Reading {:#04x}:0x{:#04x} to {:?}...", addr, end - 1, filepath);
+        println!(
+            "Reading {:#04x}:0x{:#04x} to {:?}...",
+            addr,
+            end - 1,
+            filepath
+        );
 
         let pb = ProgressBar::new(n as u64);
         pb.set_style(ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})")
@@ -573,15 +612,12 @@ impl HT32ISPDevice {
         // read command seems to only accept lengths that are multiples of 64 bytes
         for offset in (addr..end).step_by(64) {
             let left = end - offset;
-            let length = if left <= 64 {
-                left
-            } else {
-                64
-            };
+            let length = if left <= 64 { left } else { 64 };
             let cmd: [u8; 64] = HT32ISPCommand::read_flash_cmd(offset, 64).into();
             let mut buf = [0u8; 64];
             self.send_recv_cmd(&cmd[..], &mut buf[..])?;
-            file.write_all(&buf[..(length as usize)]).map_err(Error::FileError)?;
+            file.write_all(&buf[..(length as usize)])
+                .map_err(Error::FileError)?;
             pb.set_position(offset as u64 + length as u64 - addr as u64);
         }
         pb.finish();
@@ -618,12 +654,11 @@ impl HT32DeviceList {
             dev_list: rusb::DeviceList::new()
                 .map_err(Error::UsbError)?
                 .iter()
-                .filter(|dev| {
-                    match dev.device_descriptor() {
-                        Ok(d) => (d.vendor_id() == vid) && (d.product_id() == pid),
-                        Err(_) => false,
-                    }
-                }).collect::<Vec<_>>(),
+                .filter(|dev| match dev.device_descriptor() {
+                    Ok(d) => (d.vendor_id() == vid) && (d.product_id() == pid),
+                    Err(_) => false,
+                })
+                .collect::<Vec<_>>(),
             vid,
             pid,
         })
@@ -669,7 +704,8 @@ impl HT32DeviceList {
                     model,
                     dev.bus_number(),
                     dev.port_number(),
-                    dev.address());
+                    dev.address()
+                );
 
                 ht32_dev.release().unwrap();
                 count += 1;

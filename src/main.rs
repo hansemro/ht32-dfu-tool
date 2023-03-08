@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (c) 2023 Hansem Ro <hansemro@outlook.com>
 
-mod device;
 mod command;
+mod device;
 
 use crate::device::HT32DeviceList;
 use clap::{Parser, Subcommand};
@@ -10,8 +10,7 @@ use std::path::PathBuf;
 
 fn parse_vidpid(src: &str) -> Result<(u16, u16), std::num::ParseIntError> {
     let lower = src.to_lowercase();
-    let mut split = lower.split(':')
-        .map(|x| x.trim_start_matches("0x"));
+    let mut split = lower.split(':').map(|x| x.trim_start_matches("0x"));
     let vid = u16::from_str_radix(split.next().unwrap(), 16)?;
     let pid = u16::from_str_radix(split.next().unwrap(), 16)?;
     Ok((vid, pid))
@@ -20,7 +19,7 @@ fn parse_vidpid(src: &str) -> Result<(u16, u16), std::num::ParseIntError> {
 fn parse_hex_or_dec(src: &str) -> Result<u32, std::num::ParseIntError> {
     let lower = src.to_lowercase();
     if lower.starts_with("0x") {
-        let (_,num) = lower.split_at(2);
+        let (_, num) = lower.split_at(2);
         Ok(u32::from_str_radix(num, 16)?)
     } else {
         Ok(lower.parse::<u32>()?)
@@ -31,7 +30,13 @@ fn parse_hex_or_dec(src: &str) -> Result<u32, std::num::ParseIntError> {
 #[command(author, version, about = "HT32 ISP DFU Tool", long_about = None)]
 struct Args {
     /// <vendor_id>:<product_id>
-    #[arg(short, long, value_parser(parse_vidpid), id = "VID:PID", default_value = "04d9:8010")]
+    #[arg(
+        short,
+        long,
+        value_parser(parse_vidpid),
+        id = "VID:PID",
+        default_value = "04d9:8010"
+    )]
     device: (u16, u16),
     /// Match given device number in list
     #[arg(short = 'n', long, id = "DEV_NUM")]
@@ -55,7 +60,7 @@ struct Args {
     length: Option<u32>,
 
     #[command(subcommand)]
-    action: Action
+    action: Action,
 }
 
 #[derive(Subcommand, Debug, PartialEq)]
@@ -140,7 +145,9 @@ fn main() {
     match args.action {
         Action::List => (),
         Action::Read { addr, file } => {
-            let security_info = dev.get_security_info().expect("Unable to get device security status");
+            let security_info = dev
+                .get_security_info()
+                .expect("Unable to get device security status");
             assert!(!security_info.flash_security());
             let info = dev.get_info().expect("Unable to get device information");
             let length = if args.length.is_none() {
@@ -152,7 +159,16 @@ fn main() {
             assert!(length >= 64);
             dev.read(&file, addr, length).expect("Read failed");
         }
-        Action::Write { addr, file, pp0, fs_en, obp_en, pp1, pp2, pp3 } => {
+        Action::Write {
+            addr,
+            file,
+            pp0,
+            fs_en,
+            obp_en,
+            pp1,
+            pp2,
+            pp3,
+        } => {
             match dev.write(&file, addr, args.mass_erase) {
                 Ok(_) => (),
                 Err(e) => match e {
