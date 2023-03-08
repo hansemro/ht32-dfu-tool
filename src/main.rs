@@ -8,6 +8,8 @@ use crate::device::HT32DeviceList;
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
+/// Attempt to parse the string `src` containing two hexadecimal numbers
+/// separated by a colon.
 fn parse_vidpid(src: &str) -> Result<(u16, u16), std::num::ParseIntError> {
     let lower = src.to_lowercase();
     let mut split = lower.split(':').map(|x| x.trim_start_matches("0x"));
@@ -16,6 +18,8 @@ fn parse_vidpid(src: &str) -> Result<(u16, u16), std::num::ParseIntError> {
     Ok((vid, pid))
 }
 
+/// Attempt to parse the string `src` as hexadecimal if it begins with "0x",
+/// or as decimal otherwise.
 fn parse_hex_or_dec(src: &str) -> Result<u32, std::num::ParseIntError> {
     let lower = src.to_lowercase();
     if lower.starts_with("0x") {
@@ -55,7 +59,7 @@ struct Args {
     #[arg(short, long, action = clap::ArgAction::SetTrue)]
     verify: bool,
 
-    /// Number of bytes to read [default: rest of flash]"
+    /// Number of bytes to read [default: rest of flash]
     #[arg(short = 'c', value_parser(parse_hex_or_dec))]
     length: Option<u32>,
 

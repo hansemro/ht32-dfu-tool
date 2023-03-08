@@ -23,51 +23,74 @@ pub enum Error {
     PageProtected(u8),
 }
 
+/// HT32 device information
 pub struct HT32ISPInfo {
+    /// HT32 chip model name in hexadecimal. This may be set to 0 if handling unknown version.
     model: u32,
+    /// HT32 ISP version
     version: u16,
+    /// Page size in bytes
     page_size: u16,
+    /// Flash size in bytes (excluding option bytes page)
     flash_size: u32,
 }
 
 impl HT32ISPInfo {
+    /// Get HT32 chip model
     pub fn model(&self) -> u32 {
         self.model
     }
 
+    /// Get HT32 ISP version
     pub fn version(&self) -> u16 {
         self.version
     }
 
+    /// Get page size in bytes
     pub fn page_size(&self) -> u16 {
         self.page_size
     }
 
+    /// Get flash size in bytes
     pub fn flash_size(&self) -> u32 {
         self.flash_size
     }
 }
 
+/// Option byte base address
 pub const OB_ADDR: u32 = 0x1ff00000;
 
+/// HT32 device security information
 pub struct HT32Security {
+    /// Flash security prevents read access to flash when in debug mode or
+    /// booting from SRAM.
     flash_security: bool,
+    /// Option byte page write protection. Once set, this bit can only be
+    /// cleared with a mass-erase and reset.
     option_byte_protection: bool,
+    /// Flash page protection words, where each bit of a word corresponds to a
+    /// page of flash. A page of flash is protected if its bit is 0.
+    /// - page_protection[0]: pages 0 - 31
+    /// - page_protection[1]: pages 32 - 63
+    /// - page_protection[2]: pages 64 - 95
+    /// - page_protection[3]: pages 96 - 127
+    ///
+    /// Flash size depends on model and can be obtained with the info command.
     page_protection: [u32; 4],
 }
 
 impl HT32Security {
-    /// Flash read and JTAG protection
+    /// Get flash security status
     pub fn flash_security(&self) -> bool {
         self.flash_security
     }
 
-    /// Option byte page protection
+    /// Get Option byte page protection status
     pub fn option_byte_protection(&self) -> bool {
         self.option_byte_protection
     }
 
-    /// Page protection
+    /// Get page protection words
     pub fn page_protection(&self) -> [u32; 4] {
         self.page_protection
     }
@@ -89,6 +112,7 @@ pub struct HT32ISPDevice {
 
 /// HT32 device in ISP mode
 impl HT32ISPDevice {
+    /// Attempts to open HT32ISPDevice with given `vid` and `pid`.
     pub fn new(
         device: &rusb::Device<rusb::GlobalContext>,
         vid: u16,
@@ -185,6 +209,7 @@ impl HT32ISPDevice {
         _cmd[..].copy_from_slice(cmd);
         _cmd[2] = 0;
         _cmd[3] = 0;
+        // CRC16 (init=0x0000, poly=0x1021)
         let xmodem = Crc::<u16>::new(&CRC_16_XMODEM);
         let crc = xmodem.checksum(&_cmd);
         _cmd[2] = crc as u8;
@@ -648,7 +673,9 @@ pub struct HT32DeviceList {
     pid: u16,
 }
 
+/// List of HT32 devices
 impl HT32DeviceList {
+    /// Obtain a list of connected devices with matching vid and pid.
     pub fn new(vid: u16, pid: u16) -> Result<Self, Error> {
         Ok(Self {
             dev_list: rusb::DeviceList::new()
