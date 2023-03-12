@@ -42,7 +42,7 @@ Create a file `/etc/udev/rules.d/99-ht32.rules` containing the following:
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="04d9", ATTRS{idProduct}=="8010", MODE="0666"
 ```
 
-Resetart your computer or reload udev by running the follwing commands:
+Restart your computer or reload udev by running the follwing commands:
 ```
 sudo udevadm control --reload
 sudo udevadm trigger
@@ -94,8 +94,7 @@ Options:
 ## Notes about ISP
 
 - Mass-erase wipes entire flash and disables security/protection, but is necessary for reprogramming locked devices.
-- Device does not reboot to ISP if resetting while the pins are not shorted correctly.
-    - A reset occurs after a mass-erase, so keep the pins shorted until after the write finishes.
+- A reset occurs after a mass-erase, so keep the pins shorted until after the write finishes.
 - Flash security prevents reading data from flash.
 
 ## License
