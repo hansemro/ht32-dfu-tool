@@ -42,7 +42,7 @@ Create a file `/etc/udev/rules.d/99-ht32.rules` containing the following:
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="04d9", ATTRS{idProduct}=="8010", MODE="0666"
 ```
 
-Restart your computer or reload udev by running the follwing commands:
+Restart your computer or reload udev by running the following commands:
 ```
 sudo udevadm control --reload
 sudo udevadm trigger
