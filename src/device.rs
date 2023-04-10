@@ -532,9 +532,9 @@ impl HT32ISPDevice {
             pb.set_position(offset as u64 + length as u64 - addr as u64);
         }
         if write {
-            pb.finish_with_message("Verified flash region");
-        } else {
             pb.finish_with_message("Flashed flash region");
+        } else {
+            pb.finish_with_message("Verified flash region");
         }
         Ok(())
     }
@@ -620,7 +620,7 @@ impl HT32ISPDevice {
         let mut file = File::create(filepath).map_err(Error::File)?;
         let end = addr + n;
         println!(
-            "Reading {:#04x}:0x{:#04x} to {:?}...",
+            "Reading flash region [{:#04x}:{:#04x}] to {:?}...",
             addr,
             end - 1,
             filepath
