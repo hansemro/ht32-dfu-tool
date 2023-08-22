@@ -36,13 +36,15 @@ pacman -S base-devel \
 
 ### Linux Udev Rule
 
-Create a file `/etc/udev/rules.d/99-ht32.rules` containing the following:
+To permit HT32 device access by non-root users in the `plugdev` group, create
+a udev rule file `/etc/udev/rules.d/99-ht32.rules` containing the following:
+
 ```
-# Holtek Interfaces
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="04d9", ATTRS{idProduct}=="8010", MODE="0666"
+# Holtek HT32 ISP USB Interface
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="04d9", ATTRS{idProduct}=="8010", MODE="0660", GROUP="plugdev", TAG+="uaccess"
 ```
 
-Restart your computer or reload udev by running the following commands:
+Restart your computer or reload udev rules by running the following commands:
 ```
 sudo udevadm control --reload
 sudo udevadm trigger
