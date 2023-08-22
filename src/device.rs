@@ -490,7 +490,7 @@ impl HT32ISPDevice {
         let mut status = [0u8; 64];
         self.get_report(&mut status[..]).ok();
 
-        let pb = ProgressBar::new(metadata.len() as u64);
+        let pb = ProgressBar::new(metadata.len());
         pb.set_style(ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})")
             .unwrap()
             .with_key("eta", |state: &ProgressState, w: &mut dyn std::fmt::Write| {
