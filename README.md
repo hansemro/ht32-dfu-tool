@@ -68,6 +68,8 @@ ht32-dfu-tool [OPTIONS] <COMMAND>
 Commands:
   list                  List detected devices
 
+  info                  Check device info
+
   read <ADDR> <FILE>    Read flash starting at <ADDR> to <FILE>
 
   write <ADDR> <FILE> [FS_EN] [OBP_EN] [PP0] [PP1] [PP2] [PP3]
@@ -75,8 +77,8 @@ Commands:
                         optionally set flash security, option byte protection,
                         and page protection.
 
-  info                  Check device info
   reset                 Reset to application firmware
+
   reset-iap             Reset to IAP (or ISP depending on BOOT pin(s))
 
   help                  Print this message or the help of the given subcommand(s)

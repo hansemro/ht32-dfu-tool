@@ -71,6 +71,8 @@ struct Args {
 enum Action {
     /// List detected devices
     List,
+    /// Check device info
+    Info,
     /// Read flash starting at <ADDR> to <FILE>
     Read {
         /// Start address (use 0x prefix if hexadecimal)
@@ -103,8 +105,6 @@ enum Action {
         #[arg(value_parser(parse_hex_or_dec))]
         pp3: Option<u32>,
     },
-    /// Check device info
-    Info,
     /// Reset to application firmware
     Reset,
     /// Reset to IAP (or ISP depending on BOOT pin(s))
