@@ -7,7 +7,7 @@ license = "GPL-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = { version = "4.1.4", features = ["derive"] }
+clap = { version = "4.4.6", features = ["derive"] }
 crc = "3.0.1"
 indicatif = "0.17.5"
 rusb = "0.9.3"
