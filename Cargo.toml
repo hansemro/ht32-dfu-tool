@@ -10,4 +10,4 @@ license = "GPL-2.0"
 clap = { version = "4.1.4", features = ["derive"] }
 crc = "3.0.1"
 indicatif = "0.17.5"
-rusb = "0.9.1"
+rusb = "0.9.3"
