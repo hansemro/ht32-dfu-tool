@@ -63,19 +63,34 @@ Target binary is located at `./target/release/ht32-dfu-tool[.exe]`.
 ## Usage Help
 
 ```
-ht32-dfu-tool [OPTIONS] <COMMAND>
+ht32-dfu-tool [OPTIONS] <COMMAND> [COMMAND_OPTIONS]
 
 Commands:
   list                  List detected devices
 
   info                  Check device info
 
-  read <ADDR> <FILE>    Read flash starting at <ADDR> to <FILE>
+  read [-c <LENGTH_IN_BYTES>] <ADDR> <FILE>
+                        Read flash starting at <ADDR> to <FILE>.
 
-  write <ADDR> <FILE> [FS_EN] [OBP_EN] [PP0] [PP1] [PP2] [PP3]
-                        Write <FILE> to flash starting at <ADDR>, and
-                        optionally set flash security, option byte protection,
-                        and page protection.
+                        Unless the -c option is specified to read a specific
+                        length of flash in bytes, flash will be read until the
+                        end of flash.
+
+  write [-m] [-v] <ADDR> <FILE> [FS_EN] [OBP_EN] [PP0] [PP1] [PP2] [PP3]
+                        Erase affected regions of flash, then write <FILE> to
+                        flash starting at <ADDR>, and optionally set flash
+                        security, option byte protection, and page protection.
+
+                        By default, a page erase is performed over any pages
+                        that will be overwritten. However, if the -m or
+                        --mass-erase option is specified, then a mass erase and
+                        a reset will be performed. Mass erase will wipe all
+                        flash contents including flash security and page
+                        protection.
+
+                        If -v or --verify option is specified, then the written
+                        region of flash will be validated after writing.
 
   reset                 Reset to application firmware
 
@@ -87,10 +102,7 @@ Options:
   -d, --device <VID:PID>  <vendor_id>:<product_id> [default: 04d9:8010]
   -n, --devnum <DEV_NUM>  Match given device number in list
   -w, --wait              Wait for device to appear
-  -r, --reset             Reset after we're finished
-  -m, --mass-erase        Mass-erase device before writing flash
-  -v, --verify            Verify flash contents after writing flash
-  -c <LENGTH>             Number of bytes to read [default: rest of flash]
+  -r, --reset             Reset after performing command
   -h, --help              Print help
   -V, --version           Print version
 ```

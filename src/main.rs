@@ -5,7 +5,7 @@ mod command;
 mod device;
 
 use crate::device::HT32DeviceList;
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, Args};
 use std::path::PathBuf;
 
 /// Attempt to parse the string `src` containing two hexadecimal numbers
@@ -32,7 +32,7 @@ fn parse_hex_or_dec(src: &str) -> Result<u32, std::num::ParseIntError> {
 
 #[derive(Parser, Debug)]
 #[command(author, version, about = "HT32 ISP DFU Tool", long_about = None)]
-struct Args {
+struct Cli {
     /// <vendor_id>:<product_id>
     #[arg(
         short,
@@ -49,19 +49,9 @@ struct Args {
     #[arg(short, long, action = clap::ArgAction::SetTrue)]
     wait: bool,
 
-    /// Reset after we're finished
+    /// Reset after performing command
     #[arg(short, long, action = clap::ArgAction::SetTrue)]
     reset: bool,
-    /// Mass-erase device before writing flash
-    #[arg(short, long = "mass-erase", action = clap::ArgAction::SetTrue)]
-    mass_erase: bool,
-    /// Verify flash contents after writing flash
-    #[arg(short, long, action = clap::ArgAction::SetTrue)]
-    verify: bool,
-
-    /// Number of bytes to read [default: rest of flash]
-    #[arg(short = 'c', value_parser(parse_hex_or_dec))]
-    length: Option<u32>,
 
     #[command(subcommand)]
     action: Action,
@@ -74,45 +64,61 @@ enum Action {
     /// Check device info
     Info,
     /// Read flash starting at <ADDR> to <FILE>
-    Read {
-        /// Start address (use 0x prefix if hexadecimal)
-        #[arg(value_parser(parse_hex_or_dec))]
-        addr: u32,
-        /// Output file path
-        file: PathBuf,
-    },
+    Read(ReadArgs),
     /// Write <FILE> to flash starting at <ADDR>
-    Write {
-        /// Start address (use 0x prefix if hexadecimal)
-        #[arg(value_parser(parse_hex_or_dec))]
-        addr: u32,
-        /// Input file path
-        file: PathBuf,
-        /// Enable flash security
-        fs_en: Option<bool>,
-        /// Enable option byte protection
-        obp_en: Option<bool>,
-        /// Page protection for pages 0-31
-        #[arg(value_parser(parse_hex_or_dec))]
-        pp0: Option<u32>,
-        /// Page protection for pages 32-63
-        #[arg(value_parser(parse_hex_or_dec))]
-        pp1: Option<u32>,
-        /// Page protection for pages 64-95
-        #[arg(value_parser(parse_hex_or_dec))]
-        pp2: Option<u32>,
-        /// Page protection for pages 96-127
-        #[arg(value_parser(parse_hex_or_dec))]
-        pp3: Option<u32>,
-    },
+    Write(WriteArgs),
     /// Reset to application firmware
     Reset,
     /// Reset to IAP (or ISP depending on BOOT pin(s))
     ResetIAP,
 }
 
+#[derive(Args, Debug, PartialEq)]
+struct ReadArgs {
+    /// Start address (use 0x prefix if hexadecimal)
+    #[arg(value_parser(parse_hex_or_dec))]
+    addr: u32,
+    /// Output file path
+    file: PathBuf,
+    /// Number of bytes to read [default: rest of flash]
+    #[arg(short = 'c', value_parser(parse_hex_or_dec))]
+    length: Option<u32>,
+}
+
+#[derive(Args, Debug, PartialEq)]
+struct WriteArgs {
+    /// Start address (use 0x prefix if hexadecimal)
+    #[arg(value_parser(parse_hex_or_dec))]
+    addr: u32,
+    /// Input file path
+    file: PathBuf,
+    /// Enable flash security
+    fs_en: Option<bool>,
+    /// Enable option byte protection
+    obp_en: Option<bool>,
+    /// Page protection for pages 0-31
+    #[arg(value_parser(parse_hex_or_dec))]
+    pp0: Option<u32>,
+    /// Page protection for pages 32-63
+    #[arg(value_parser(parse_hex_or_dec))]
+    pp1: Option<u32>,
+    /// Page protection for pages 64-95
+    #[arg(value_parser(parse_hex_or_dec))]
+    pp2: Option<u32>,
+    /// Page protection for pages 96-127
+    #[arg(value_parser(parse_hex_or_dec))]
+    pp3: Option<u32>,
+    /// Mass erase
+    #[arg(short, long = "mass_erase", action = clap::ArgAction::SetTrue)]
+    mass_erase: bool,
+    /// Verify flash contents after writing flash
+    #[arg(short, long, action = clap::ArgAction::SetTrue)]
+    verify: bool,
+
+}
+
 fn main() {
-    let args = Args::parse();
+    let args = Cli::parse();
 
     let (vid, pid) = args.device;
 
@@ -148,32 +154,23 @@ fn main() {
 
     match args.action {
         Action::List => (),
-        Action::Read { addr, file } => {
+        Action::Read(read_args) => {
             let security_info = dev
                 .get_security_info()
                 .expect("Unable to get device security status");
             assert!(!security_info.flash_security());
             let info = dev.get_info().expect("Unable to get device information");
-            let length = if args.length.is_none() {
-                info.flash_size() - addr
+            let length = if read_args.length.is_none() {
+                info.flash_size() - read_args.addr
             } else {
-                args.length.unwrap()
+                read_args.length.unwrap()
             };
-            assert!(info.flash_size() >= addr + length);
+            assert!(info.flash_size() >= read_args.addr + length);
             assert!(length >= 64);
-            dev.read(&file, addr, length).expect("Read failed");
+            dev.read(&read_args.file, read_args.addr, length).expect("Read failed");
         }
-        Action::Write {
-            addr,
-            file,
-            pp0,
-            fs_en,
-            obp_en,
-            pp1,
-            pp2,
-            pp3,
-        } => {
-            match dev.write(&file, addr, args.mass_erase) {
+        Action::Write(write_args) => {
+            match dev.write(&write_args.file, write_args.addr, write_args.mass_erase) {
                 Ok(_) => (),
                 Err(e) => match e {
                     device::Error::PageProtected(page_num) => {
@@ -182,17 +179,17 @@ fn main() {
                     _ => panic!("Write failed"),
                 },
             }
-            if args.verify {
-                dev.verify(&file, addr).expect("Flash verification failed");
+            if write_args.verify {
+                dev.verify(&write_args.file, write_args.addr).expect("Flash verification failed");
             }
-            if fs_en.is_some() {
+            if write_args.fs_en.is_some() {
                 // default to no security or page protection
-                let fs_en = fs_en.unwrap_or(false);
-                let obp_en = obp_en.unwrap_or(false);
-                let pp0 = pp0.unwrap_or(0xffffffff);
-                let pp1 = pp1.unwrap_or(0xffffffff);
-                let pp2 = pp2.unwrap_or(0xffffffff);
-                let pp3 = pp3.unwrap_or(0xffffffff);
+                let fs_en = write_args.fs_en.unwrap_or(false);
+                let obp_en = write_args.obp_en.unwrap_or(false);
+                let pp0 = write_args.pp0.unwrap_or(0xffffffff);
+                let pp1 = write_args.pp1.unwrap_or(0xffffffff);
+                let pp2 = write_args.pp2.unwrap_or(0xffffffff);
+                let pp3 = write_args.pp3.unwrap_or(0xffffffff);
                 dev.erase_write_option_bytes([pp0, pp1, pp2, pp3], fs_en, obp_en)
                     .expect("Failed to write option bytes");
             }
