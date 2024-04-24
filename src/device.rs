@@ -70,10 +70,10 @@ pub struct HT32Security {
     option_byte_protection: bool,
     /// Flash page protection words, where each bit of a word corresponds to a
     /// page of flash. A page of flash is protected if its bit is 0.
-    /// - page_protection[0]: pages 0 - 31
-    /// - page_protection[1]: pages 32 - 63
-    /// - page_protection[2]: pages 64 - 95
-    /// - page_protection[3]: pages 96 - 127
+    /// - page_protection\[0\]: pages 0 - 31
+    /// - page_protection\[1\]: pages 32 - 63
+    /// - page_protection\[2\]: pages 64 - 95
+    /// - page_protection\[3\]: pages 96 - 127
     ///
     /// Flash size depends on model and can be obtained with the info command.
     page_protection: [u32; 4],
@@ -96,6 +96,7 @@ impl HT32Security {
     }
 }
 
+/// HT32 device in ISP mode
 pub struct HT32ISPDevice {
     handle: Option<rusb::DeviceHandle<rusb::GlobalContext>>,
     vid: u16,
@@ -110,7 +111,6 @@ pub struct HT32ISPDevice {
     security_info: Option<HT32Security>,
 }
 
-/// HT32 device in ISP mode
 impl HT32ISPDevice {
     /// Attempts to open HT32ISPDevice with given `vid` and `pid`.
     pub fn new(
