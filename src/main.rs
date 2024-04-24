@@ -96,16 +96,16 @@ struct WriteArgs {
     fs_en: Option<bool>,
     /// Enable option byte protection
     obp_en: Option<bool>,
-    /// Page protection for pages 0-31
+    /// 32-bit page protection disable bitmask for pages 0-31
     #[arg(value_parser(parse_hex_or_dec))]
     pp0: Option<u32>,
-    /// Page protection for pages 32-63
+    /// 32-bit page protection disable bitmask for pages 32-63
     #[arg(value_parser(parse_hex_or_dec))]
     pp1: Option<u32>,
-    /// Page protection for pages 64-95
+    /// 32-bit page protection disable bitmask for pages 64-95
     #[arg(value_parser(parse_hex_or_dec))]
     pp2: Option<u32>,
-    /// Page protection for pages 96-127
+    /// 32-bit page protection disable bitmask for pages 96-127
     #[arg(value_parser(parse_hex_or_dec))]
     pp3: Option<u32>,
     /// Mass erase
