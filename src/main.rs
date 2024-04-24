@@ -33,7 +33,7 @@ fn parse_hex_or_dec(src: &str) -> Result<u32, std::num::ParseIntError> {
 #[derive(Parser, Debug)]
 #[command(author, version, about = "HT32 ISP DFU Tool", long_about = None)]
 struct Cli {
-    /// <vendor_id>:<product_id>
+    /// Specify vendor_id:product_id in hexadecimal
     #[arg(
         short,
         long,
@@ -63,9 +63,9 @@ enum Action {
     List,
     /// Check device info
     Info,
-    /// Read flash starting at <ADDR> to <FILE>
+    /// Read flash starting at ADDR to FILE
     Read(ReadArgs),
-    /// Write <FILE> to flash starting at <ADDR>
+    /// Write FILE to flash starting at ADDR
     Write(WriteArgs),
     /// Reset to application firmware
     Reset,

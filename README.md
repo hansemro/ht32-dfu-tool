@@ -71,15 +71,15 @@ Commands:
   info                  Check device info
 
   read [-c <LENGTH_IN_BYTES>] <ADDR> <FILE>
-                        Read flash starting at <ADDR> to <FILE>.
+                        Read flash starting at ADDR to FILE.
 
                         Unless the -c option is specified to read a specific
                         length of flash in bytes, flash will be read until the
                         end of flash.
 
   write [-m] [-v] <ADDR> <FILE> [FS_EN] [OBP_EN] [PP0] [PP1] [PP2] [PP3]
-                        Erase affected regions of flash, then write <FILE> to
-                        flash starting at <ADDR>, and optionally set flash
+                        Erase affected regions of flash, then write FILE to
+                        flash starting at ADDR, and optionally set flash
                         security, option byte protection, and page protection.
 
                         By default, a page erase is performed over any pages
@@ -99,7 +99,7 @@ Commands:
   help                  Print this message or the help of the given subcommand(s)
 
 Options:
-  -d, --device <VID:PID>  <vendor_id>:<product_id> [default: 04d9:8010]
+  -d, --device <VID:PID>  Specify vendor_id:product_id in hexadecimal [default: 04d9:8010]
   -n, --devnum <DEV_NUM>  Match given device number in list
   -w, --wait              Wait for device to appear
   -r, --reset             Reset after performing command
