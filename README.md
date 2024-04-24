@@ -4,29 +4,25 @@ ht32-dfu-tool
 A host-side DFU tool for Holtek HT32 devices in In-System Programming (ISP)
 mode over USB.
 
-Holtek HT32 processors feature a ROM ISP bootloader used for reprogramming
-flash, setting flash security, and verifying integrity of flash via USB or
-UART interface. By shorting the designated BOOT pin(s) and resetting, the
-device will start in ISP bootloader and can be detected over USB. Refer to
-the VMCR register in the Flash Memory Controller section in the User Manuals
-to see which pins need to be shorted high/low to start in `Boot Loader` mode.
-
-## Setup
+## Host Setup (Linux/BSD, macOS, Windows)
 
 ### Dependencies
 
 - libusb-1 (with headers)
-- cargo/rustup
+- rust toolchain with cargo
 
 ### Windows Development Setup (MSYS2/MINGW64)
 
 1. Install MSYS2 from https://www.msys2.org/
 
 2. Update MSYS2 environment (from `MSYS2 MINGW64` console):
+
 ```bash
 pacman -Syu
 ```
+
 3. Install build tools and dependencies:
+
 ```bash
 pacman -S base-devel \
         mingw-w64-x86_64-toolchain \
@@ -45,20 +41,26 @@ SUBSYSTEMS=="usb", ATTRS{idVendor}=="04d9", ATTRS{idProduct}=="8010", MODE="0660
 ```
 
 Restart your computer or reload udev rules by running the following commands:
+
 ```
 sudo udevadm control --reload
 sudo udevadm trigger
 ```
 
-## Build from Source
+## Installation
 
-Build the utility with cargo:
+Run the following to install directly from git repo:
+
+```
+cargo install --git https://github.com/hansemro/ht32-dfu-tool
+```
+
+To build and install from source directory, run instead:
+
 ```
 cd ht32-dfu-tool
-cargo build -r
+cargo install --path .
 ```
-
-Target binary is located at `./target/release/ht32-dfu-tool[.exe]`.
 
 ## Usage Help
 
@@ -107,11 +109,11 @@ Options:
   -V, --version           Print version
 ```
 
-## Notes about ISP
+## Supported Targets
 
-- Mass-erase wipes entire flash and disables security/protection, but is necessary for reprogramming locked devices.
-- A reset occurs after a mass-erase, so keep the pins shorted until after the write finishes.
-- Flash security prevents reading data from flash.
+Tested with HT32F165x and HT32F523xx. Should work with other HT32 MCUs over USB with similar ISP
+command interface. Refer to user manual on booting configuration to learn more about how to boot
+into ISP mode.
 
 ## License
 
