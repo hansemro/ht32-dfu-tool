@@ -568,7 +568,8 @@ impl HT32ISPDevice {
         // checksum
         let ck = pp[0] + pp[1] + pp[2] + pp[3] + cp;
 
-        let mut ob = [0u8; 52];
+        // Default to 0xff for each byte
+        let mut ob = [0xffu8; 52];
         // 0x0 : pp0
         ob[0] = pp[0] as u8;
         ob[1] = (pp[0] >> 8) as u8;
