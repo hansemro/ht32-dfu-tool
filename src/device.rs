@@ -361,7 +361,7 @@ impl HT32ISPDevice {
 
     /// Reset device and attempt to reconnect device
     pub fn reset_reconnect(&mut self) -> Result<(), Error> {
-        self.reset_iap()?;
+        self.reset_app()?;
         println!("Waiting for device to reconnect...");
 
         std::thread::sleep(Duration::new(3, 0));
