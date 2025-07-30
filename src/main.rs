@@ -48,11 +48,9 @@ struct Cli {
     /// Wait for device to appear
     #[arg(short, long, action = clap::ArgAction::SetTrue)]
     wait: bool,
-
     /// Reset after performing command
     #[arg(short, long, action = clap::ArgAction::SetTrue)]
     reset: bool,
-
     #[command(subcommand)]
     action: Action,
 }
@@ -61,15 +59,44 @@ struct Cli {
 enum Action {
     /// List detected devices
     List,
-    /// Check device info
+    /// Print device info including model, ISP version, page size, flash size,
+    /// flash security status, option byte protection status, and PP0:PP3 page
+    /// protection words.
     Info,
-    /// Read flash starting at ADDR to FILE
+    #[clap(
+        about = "Read flash starting at ADDR to binary FILE.\n\n\
+                 Unless the -c option is specified with the number of bytes to\
+                 read, flash will be read until the end of flash."
+    )]
+    /// Read flash starting at ADDR to binary FILE
     Read(ReadArgs),
+    #[clap(
+        about = "Program binary FILE to flash starting at ADDR by first erasing \
+                 pages of flash that will be written, writing to flash, and, \
+                 optionally, verify flash contents and/or set flash security, \
+                 option byte protection, and page protection.\n\n\
+                 By default, a page erase is performed over any pages that will \
+                 be written. However, if the -m or --mass-erase option is \
+                 specified, then all flash pages including the option byte page \
+                 will be erased and then followed by a reset to apply flash \
+                 security changes.\n\n\
+                 If -v or --verify option is specified, then the written region \
+                 of flash will be validated after writing.\n\n\
+                 Set FS_EN to true/false to enable/disable Flash Security.\n\n\
+                 Set OBP_EN to true/false to enable/disable Option Byte \
+                 Protection.\n\n\
+                 The arguments PP0-PP3 are 32-bit values where each bit \
+                 corresponds to a page, with PP0 setting page protection for \
+                 pages 0-31, PP1 for pages 32-63, and so on. Setting the n-th \
+                 bit in the respective argument to 1/0 disables/enables page \
+                 protection for the corresponding page. By default, no pages \
+                 are protected with PP0-PP3 each set to 0xffffffff."
+    )]
     /// Write FILE to flash starting at ADDR
     Write(WriteArgs),
     /// Reset to application firmware
     Reset,
-    /// Reset to IAP (or ISP depending on BOOT pin(s))
+    /// Reset to IAP (or ISP depending on how HT32 device is configured to boot)
     ResetIAP,
 }
 
@@ -108,7 +135,7 @@ struct WriteArgs {
     /// 32-bit page protection disable bitmask for pages 96-127
     #[arg(value_parser(parse_hex_or_dec))]
     pp3: Option<u32>,
-    /// Mass erase
+    /// Erase all flash pages including the option byte page
     #[arg(short, long = "mass-erase", action = clap::ArgAction::SetTrue)]
     mass_erase: bool,
     /// Verify flash contents after writing flash
