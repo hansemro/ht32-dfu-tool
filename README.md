@@ -70,7 +70,9 @@ ht32-dfu-tool [OPTIONS] <COMMAND> [COMMAND_OPTIONS]
 Commands:
   list                  List detected devices
 
-  info                  Check device info
+  info                  Print device info including model, ISP version, page
+                        size, flash size, flash security status, option byte
+                        protection status, and PP0:PP3 page protection bits.
 
   read [-c <LENGTH_IN_BYTES>] <ADDR> <FILE>
                         Read flash starting at ADDR to FILE.
@@ -80,23 +82,39 @@ Commands:
                         end of flash.
 
   write [-m] [-v] <ADDR> <FILE> [FS_EN] [OBP_EN] [PP0] [PP1] [PP2] [PP3]
-                        Erase affected regions of flash, then write FILE to
-                        flash starting at ADDR, and optionally set flash
-                        security, option byte protection, and page protection.
+                        Program binary FILE to flash starting at ADDR by first
+                        erasing pages of flash that will be written, writing to
+                        flash, and, optionally, verify flash contents and/or
+                        set flash security, option byte protection, and page
+                        protection.
 
                         By default, a page erase is performed over any pages
-                        that will be overwritten. However, if the -m or
-                        --mass-erase option is specified, then a mass erase and
-                        a reset will be performed. Mass erase will wipe all
-                        flash contents including flash security and page
-                        protection.
+                        that will be written. However, if the -m or
+                        --mass-erase option is specified, then all flash pages
+                        including the option byte page will be erased and then
+                        followed by a reset to apply flash security changes.
 
                         If -v or --verify option is specified, then the written
                         region of flash will be validated after writing.
 
+                        Set FS_EN to true/false to enable/disable Flash
+                        Security.
+
+                        Set OBP_EN to true/false to enable/disable Option Byte
+                        Protection.
+
+                        The arguments PP0-PP3 are 32-bit values where each bit
+                        corresponds to a page, with PP0 setting page protection
+                        for pages 0-31, PP1 for pages 32-63, and so on. Setting
+                        the n-th bit in the respective argument to 1/0
+                        disables/enables page protection for the corresponding
+                        page. By default, no pages are protected with PP0-PP3
+                        each set to 0xffffffff.
+
   reset                 Reset to application firmware
 
-  reset-iap             Reset to IAP (or ISP depending on BOOT pin(s))
+  reset-iap             Reset to IAP (or ISP depending on how HT32 device is
+                        configured to boot)
 
   help                  Print this message or the help of the given subcommand(s)
 
