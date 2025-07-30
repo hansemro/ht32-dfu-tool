@@ -7,7 +7,7 @@ description = "CLI utility for performing HT32 ISP DFU operations over USB"
 repository = "https://github.com/hansemro/ht32-dfu-tool"
 keywords = ["usb", "ht32", "embedded"]
 categories = ["command-line-utilities", "development-tools", "embedded"]
-license = "GPL-2.0"
+license = "GPL-2.0-or-later"
 readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

@@ -117,7 +117,7 @@ into ISP mode.
 
 ## License
 
-Distributed under the [GPL-2.0 License](LICENSE).
+Distributed under the [GPL-2.0-or-later License](LICENSE).
 
 - [crc-rs](https://github.com/mrhooray/crc-rs): MIT
 - [clap](https://github.com/clap-rs/clap): MIT
