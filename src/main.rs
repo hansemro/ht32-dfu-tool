@@ -109,7 +109,7 @@ struct WriteArgs {
     #[arg(value_parser(parse_hex_or_dec))]
     pp3: Option<u32>,
     /// Mass erase
-    #[arg(short, long = "mass_erase", action = clap::ArgAction::SetTrue)]
+    #[arg(short, long = "mass-erase", action = clap::ArgAction::SetTrue)]
     mass_erase: bool,
     /// Verify flash contents after writing flash
     #[arg(short, long, action = clap::ArgAction::SetTrue)]
