@@ -170,13 +170,13 @@ fn main() {
 
     let devnum = args.devnum.unwrap_or(0) as usize;
     if devnum >= ht32_devs.len() {
-        panic!("Cannot find device {}. Check device list.", devnum);
+        panic!("Cannot find device {devnum}. Check device list.");
     }
 
     let mut dev = ht32_devs.get_dev(devnum).unwrap();
     match dev.claim() {
         Ok(_) => println!("Claimed interface"),
-        Err(e) => println!("{:?}", e),
+        Err(e) => println!("{e:?}"),
     }
 
     match args.action {
@@ -201,7 +201,7 @@ fn main() {
                 Ok(_) => (),
                 Err(e) => match e {
                     device::Error::PageProtected(page_num) => {
-                        panic!("Cannot erase or write to protected page: {}", page_num);
+                        panic!("Cannot erase or write to protected page: {page_num}");
                     }
                     _ => panic!("Write failed"),
                 },
