@@ -10,6 +10,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum Error {
     Usb(rusb::Error),
     DeviceNotFound,
