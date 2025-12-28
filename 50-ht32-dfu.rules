@@ -1,0 +1,2 @@
+ # Holtek HT32 ISP/DFU USB Interface
+ACTION!="remove", SUBSYSTEMS=="usb", ATTRS{idVendor}=="04d9", ATTRS{idProduct}=="8010", MODE="0660", TAG+="uaccess"

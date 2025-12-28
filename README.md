@@ -32,12 +32,11 @@ pacman -S base-devel \
 
 ### Linux Udev Rule
 
-To permit HT32 device access to regular users, create a udev rule file
-`/etc/udev/rules.d/50-ht32.rules` containing the following:
+To permit regular users access to HT32 device in ISP/DFU mode, copy
+`50-ht32-dfu.rules` to `/etc/udev/rules.d/`:
 
-```
-# Holtek HT32 ISP USB Interface
-ACTION!="remove", SUBSYSTEMS=="usb", ATTRS{idVendor}=="04d9", ATTRS{idProduct}=="8010", MODE="0660", TAG+="uaccess"
+```bash
+sudo cp ./50-ht32-dfu.rules /etc/udv/rules.d/
 ```
 
 Restart your computer or reload udev rules by running the following commands:
