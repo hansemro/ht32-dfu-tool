@@ -4,14 +4,17 @@ ht32-dfu-tool
 A host-side DFU tool for Holtek HT32 devices in In-System Programming (ISP)
 mode over USB.
 
-## Host Setup (Linux/BSD, macOS, Windows)
+## Building and Installing ht32-dfu-tool
 
-### Dependencies
+### Prerequisites
 
-- libusb-1 (with headers)
-- rust toolchain with cargo
+- libusb-1 with headers
+- rust (1.85 or newer) toolchain
+    - For Linux or macOS, install via rustup:
+    https://doc.rust-lang.org/stable/book/ch01-01-installation.html#installing-rustup-on-linux-or-macos
+    - For Windows, install from MSYS2 package repo
 
-### Windows Development Setup (MSYS2/MINGW64)
+#### Windows (MSYS2)
 
 1. Install MSYS2 from https://www.msys2.org/
 
@@ -30,23 +33,7 @@ pacman -S base-devel \
         mingw-w64-x86_64-libusb
 ```
 
-### Linux Udev Rule
-
-To permit regular users access to HT32 device in ISP/DFU mode, copy
-`50-ht32-dfu.rules` to `/etc/udev/rules.d/`:
-
-```bash
-sudo cp ./50-ht32-dfu.rules /etc/udv/rules.d/
-```
-
-Restart your computer or reload udev rules by running the following commands:
-
-```
-sudo udevadm control --reload
-sudo udevadm trigger
-```
-
-## Installation
+### Installation
 
 Run the following to install directly from git repo:
 
@@ -59,6 +46,22 @@ To build and install from source directory, run instead:
 ```
 cd ht32-dfu-tool
 cargo install --path .
+```
+
+### Linux `udev` Rules
+
+To permit regular users access to HT32 device in ISP/DFU mode, copy
+`50-ht32-dfu.rules` to `/etc/udev/rules.d/`:
+
+```bash
+sudo cp ./50-ht32-dfu.rules /etc/udv/rules.d/
+```
+
+Reload and apply udev rules by running the following commands:
+
+```
+sudo udevadm control --reload
+sudo udevadm trigger
 ```
 
 ## Usage Help
