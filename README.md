@@ -129,6 +129,57 @@ Options:
   -V, --version           Print version
 ```
 
+## Usage Examples
+
+Listing detected HT32 ISP devices:
+
+```
+# ht32-dfu-tool list
+Device 0: [04d9:8010] Model=HT32F52352 Bus=1 Port=2 Addr=73
+Device 1: [04d9:8010] Model=HT32F1654 Bus=1 Port=1 Addr=71
+```
+
+With no devices attached, wait for a single ISP device to appear, then print
+device info and status:
+
+```
+# ht32-dfu-tool -w info
+Waiting for device...
+Claimed interface
+Getting device info...
+Model: HT32F1654
+Version: v100
+Page size: 1024 B
+Flash size: 64512 B
+Flash security: false
+Option byte protection: false
+Page protection: 0xffffffff 0xffffffff 0xffffffff 0xffffffff
+```
+
+With multiple devices attached, readback flash from device 1 starting at
+address 0x3000 to the end of flash:
+
+```
+# ht32-dfu-tool -n 1 read 0x3000 readback.bin
+Claimed interface
+Reading flash region [0x3000:0xfbff] to "out.bin"...
+  [00:00:01] [######################################] 51.00 KiB/51.00 KiB (0.0s)
+```
+
+With BOOT1/BOOT pin bridged to ground (configured to boot to ISP), perform mass
+erase, reboot back into ISP, then write firmware binary `firmware.bin` to flash
+starting at address 0x0 (without flash security/protection):
+
+```
+# ht32-dfu-tool write -m 0x0 /path/to/firmware.bin
+```
+
+Reset device to firmware:
+
+```
+# ht32-dfu-tool reset
+```
+
 ## Supported Targets
 
 Tested with HT32F165x and HT32F523xx. Should work with other HT32 MCUs over USB with similar ISP
